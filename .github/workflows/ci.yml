@@ -32,6 +32,8 @@ jobs:
         run: |
           cd "typebridge desktop assistant"
           python test_typing.py
+          python -m unittest test_update_logic.py -v
+          python test_network_resilience.py
 
   test-android:
     name: Android Lint & Unit Tests

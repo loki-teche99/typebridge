@@ -31,9 +31,9 @@
 
             <View
                 android:id="@+id/statusDot"
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:background="@drawable/ic_launcher_background"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/bg_status_dot"
                 android:backgroundTint="@color/tb_disconnected"
                 android:layout_marginEnd="10dp" />
 
@@ -71,8 +71,7 @@
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:textColor="@color/tb_text_secondary_dark"
-                android:background="@drawable/ic_launcher_background"
-                android:backgroundTint="@color/tb_card_border_dark" />
+                android:background="@drawable/bg_badge_pill" />
 
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -235,8 +234,11 @@
         android:text="⚡   Send &amp; Type Directly"
         android:textSize="16sp"
         android:textStyle="bold"
+        android:textColor="#FFFFFF"
         app:cornerRadius="14dp"
-        android:backgroundTint="@color/tb_primary"
+        app:backgroundTint="@null"
+        android:background="@drawable/bg_primary_gradient"
+        android:elevation="4dp"
         android:layout_marginBottom="10dp"
         app:layout_constraintBottom_toTopOf="@id/controlRow"
         app:layout_constraintStart_toStartOf="parent"

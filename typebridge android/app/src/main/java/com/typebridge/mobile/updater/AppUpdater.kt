@@ -151,26 +151,15 @@ object AppUpdater {
                 return@withContext Result.success(null)
             }
 
-            // 5. Handle Rate Limiting (403, 429) with Safe Backoff
-            if (responseCode in 403..429) {
-                Log.w(TAG, "GitHub API rate limit reached ($responseCode). Safe backoff applied.")
+            // 5. Handle Rate Limiting (403, 429), 404, or non-200 via rate-limit-free Web Fallback
+            if (responseCode in 403..429 || responseCode == 404 || responseCode != 200) {
+                Log.w(TAG, "GitHub REST API returned $responseCode. Using rate-limit-free web fallback.")
                 getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
-                if (!isManual) {
-                    return@withContext Result.success(null)
-                }
                 val fallbackInfo = checkViaWebFallback(repo)
                 if (fallbackInfo != null) {
                     return@withContext Result.success(fallbackInfo)
                 }
-                return@withContext Result.failure(Exception("GitHub API rate limit reached. Please check back later."))
-            }
-
-            if (responseCode != 200) {
-                val fallbackInfo = checkViaWebFallback(repo)
-                if (fallbackInfo != null) {
-                    getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
-                    return@withContext Result.success(fallbackInfo)
-                }
+                // When web fallback finds no newer version or no release exists, user is up to date!
                 return@withContext Result.success(null)
             }
 
@@ -230,26 +219,89 @@ object AppUpdater {
                 return@withContext Result.success(null)
             }
 
-            val remoteVer = tagName.removePrefix("v").removePrefix("V")
-            val currentVer = BuildConfig.VERSION_NAME
+                var manifestUrl: String? = null
+                var sha256sumsUrl: String? = null
+                var expectedSha256: String? = null
 
-            Log.d(TAG, "Current Version: $currentVer | Latest Release: $remoteVer (Tag: $tagName)")
+                if (assetsArr != null) {
+                    for (i in 0 until assetsArr.length()) {
+                        val asset = assetsArr.getJSONObject(i)
+                        val name = asset.optString("name", "")
+                        if (name.equals("release-manifest.json", ignoreCase = true)) {
+                            manifestUrl = asset.optString("browser_download_url")
+                        } else if (name.equals("sha256sums.txt", ignoreCase = true)) {
+                            sha256sumsUrl = asset.optString("browser_download_url")
+                        }
+                    }
+                }
 
-            if (isNewerVersion(remoteVer, currentVer)) {
-                val updateInfo = UpdateInfo(
-                    versionName = remoteVer,
-                    tagName = tagName,
-                    releaseName = releaseName,
-                    changelog = body,
-                    apkDownloadUrl = apkUrl,
-                    apkFileName = apkName ?: "TypeBridge-Android-v$remoteVer.apk",
-                    apkSize = apkSize,
-                    publishedAt = publishedAt
-                )
-                Result.success(updateInfo)
-            } else {
-                Result.success(null)
-            }
+                // If release manifest exists, fetch it to get authoritative SHA-256 and size
+                if (!manifestUrl.isNullOrEmpty()) {
+                    try {
+                        val mConn = URL(manifestUrl).openConnection() as HttpURLConnection
+                        mConn.connectTimeout = 5000
+                        mConn.readTimeout = 5000
+                        if (mConn.responseCode == 200) {
+                            val mJson = JSONObject(mConn.inputStream.bufferedReader().use { it.readText() })
+                            val androidObj = mJson.optJSONObject("android")
+                            val mAssets = androidObj?.optJSONArray("assets")
+                            if (mAssets != null && mAssets.length() > 0) {
+                                val firstAsset = mAssets.getJSONObject(0)
+                                val mSha = firstAsset.optString("sha256")
+                                if (mSha.length == 64) expectedSha256 = mSha
+                                val mSize = firstAsset.optLong("size", 0L)
+                                if (mSize > 0) apkSize = mSize
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.d(TAG, "Manifest fetch notice: ${e.message}")
+                    }
+                }
+
+                // Fallback to sha256sums.txt
+                if (expectedSha256.isNullOrBlank() && !sha256sumsUrl.isNullOrEmpty()) {
+                    try {
+                        val sConn = URL(sha256sumsUrl).openConnection() as HttpURLConnection
+                        sConn.connectTimeout = 5000
+                        sConn.readTimeout = 5000
+                        if (sConn.responseCode == 200) {
+                            val lines = sConn.inputStream.bufferedReader().readLines()
+                            for (line in lines) {
+                                if (line.contains(".apk", ignoreCase = true)) {
+                                    val parts = line.trim().split(Regex("\\s+"))
+                                    if (parts.isNotEmpty() && parts[0].length == 64) {
+                                        expectedSha256 = parts[0]
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.d(TAG, "sha256sums fetch notice: ${e.message}")
+                    }
+                }
+
+                val remoteVer = tagName.removePrefix("v").removePrefix("V")
+                val currentVer = BuildConfig.VERSION_NAME
+
+                Log.d(TAG, "Current Version: $currentVer | Latest Release: $remoteVer (Tag: $tagName)")
+
+                if (isNewerVersion(remoteVer, currentVer)) {
+                    val updateInfo = UpdateInfo(
+                        versionName = remoteVer,
+                        tagName = tagName,
+                        releaseName = releaseName,
+                        changelog = body,
+                        apkDownloadUrl = apkUrl,
+                        apkFileName = apkName ?: "TypeBridge-Android-v$remoteVer.apk",
+                        apkSize = apkSize,
+                        publishedAt = publishedAt,
+                        sha256 = expectedSha256
+                    )
+                    Result.success(updateInfo)
+                } else {
+                    Result.success(null)
+                }
         } catch (e: Exception) {
             val fallback = checkViaWebFallback(repo)
             if (fallback != null) {
@@ -379,6 +431,14 @@ object AppUpdater {
             }
 
             Log.d(TAG, "APK download complete: ${targetFile.length()} bytes")
+
+            // Verify file size if known
+            if (updateInfo.apkSize > 0 && targetFile.length() != updateInfo.apkSize) {
+                targetFile.delete()
+                Log.e(TAG, "APK size mismatch! Expected: ${updateInfo.apkSize}, got: ${targetFile.length()}")
+                return@withContext Result.failure(java.io.IOException("APK file size mismatch (truncated download). File removed."))
+            }
+
             if (!updateInfo.sha256.isNullOrBlank()) {
                 val isValid = verifySha256(targetFile, updateInfo.sha256)
                 if (!isValid) {

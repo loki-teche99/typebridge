@@ -45,12 +45,8 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 --decode > typebridge-release.keystore
             echo "Keystore successfully decoded from GitHub Secrets."
           else
-            echo "Notice: KEYSTORE_BASE64 secret not found. Generating ephemeral signing keystore for CI..."
-            EPHEMERAL_PASS=$(openssl rand -hex 16)
-            echo "KEYSTORE_STORE_PASSWORD=$EPHEMERAL_PASS" >> $GITHUB_ENV
-            echo "KEYSTORE_KEY_PASSWORD=$EPHEMERAL_PASS" >> $GITHUB_ENV
-            echo "KEYSTORE_KEY_ALIAS=typebridge" >> $GITHUB_ENV
-            keytool -genkeypair -v -keystore typebridge-release.keystore -alias "typebridge" -keyalg RSA -keysize 2048 -validity 10000 -storepass "$EPHEMERAL_PASS" -keypass "$EPHEMERAL_PASS" -dname "CN=TypeBridge, OU=Release, O=TypeBridge, L=Global, ST=Global, C=US"
+            echo "::error::KEYSTORE_BASE64 secret is not configured in repository secrets! Production releases require the persistent release keystore. Aborting."
+            exit 1
           fi
 
       - name: Build Release APK
@@ -127,10 +123,33 @@ jobs:
         id: prep
         run: |
           cd release_assets/
-          mv app-release.apk TypeBridge-Android-${{ github.ref_name || inputs.tag_name }}.apk 2>/dev/null || true
+          TAG="${{ github.ref_name || inputs.tag_name }}"
+          APK_NAME="TypeBridge-Android-${TAG}.apk"
+          EXE_NAME="TypeBridgeSetup-${TAG}.exe"
           
-          # Generate SHA256 sums
-          sha256sum * > sha256sums.txt
+          # Rename Android APK to tag-specific canonical name
+          if [ -f app-release.apk ]; then
+            mv app-release.apk "${APK_NAME}"
+          fi
+          
+          # Rename Windows setup installer to tag-specific canonical name
+          SETUP_SRC=$(ls TypeBridgeSetup-*.exe 2>/dev/null | head -n 1)
+          if [ -n "$SETUP_SRC" ] && [ "$SETUP_SRC" != "${EXE_NAME}" ]; then
+            mv "$SETUP_SRC" "${EXE_NAME}"
+          fi
+          
+          # Validate that both primary binary assets exist and are non-empty
+          if [ ! -f "${APK_NAME}" ] || [ $(stat -c%s "${APK_NAME}") -lt 1000000 ]; then
+            echo "::error::Required asset ${APK_NAME} is missing or incomplete!"
+            exit 1
+          fi
+          if [ ! -f "${EXE_NAME}" ] || [ $(stat -c%s "${EXE_NAME}") -lt 5000000 ]; then
+            echo "::error::Required asset ${EXE_NAME} is missing or incomplete!"
+            exit 1
+          fi
+
+          # Generate clean SHA-256 sums only for the production binaries
+          sha256sum "${APK_NAME}" "${EXE_NAME}" > sha256sums.txt
           cat sha256sums.txt
 
       - name: Generate Release Manifest
@@ -144,40 +163,58 @@ jobs:
           APK_SHA=$(sha256sum "release_assets/${APK_NAME}" | awk '{print $1}')
           APK_SIZE=$(stat -c%s "release_assets/${APK_NAME}")
           
-          EXE_SHA=$(sha256sum release_assets/TypeBridgeSetup-*.exe | head -n 1 | awk '{print $1}')
-          EXE_SIZE=$(stat -c%s release_assets/TypeBridgeSetup-*.exe | head -n 1)
+          EXE_SHA=$(sha256sum "release_assets/${EXE_NAME}" | awk '{print $1}')
+          EXE_SIZE=$(stat -c%s "release_assets/${EXE_NAME}")
+          
+          # Read actual versionCode from gradle configuration
+          VERSION_CODE=$(grep -oE 'versionCode\s*=\s*[0-9]+' "typebridge android/app/build.gradle.kts" | grep -oE '[0-9]+' | head -n 1)
+          if [ -z "$VERSION_CODE" ]; then
+            VERSION_CODE=1
+          fi
           
           cat <<EOF > release_assets/release-manifest.json
-          {
-            "schemaVersion": 1,
-            "version": "${VER}",
-            "channel": "stable",
-            "minimumSupportedVersion": "1.0.0",
-            "android": {
-              "versionCode": 1,
-              "assets": [
-                {
-                  "name": "${APK_NAME}",
-                  "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${APK_NAME}",
-                  "size": ${APK_SIZE},
-                  "sha256": "${APK_SHA}"
-                }
-              ]
-            },
-            "windows": {
-              "version": "${VER}",
-              "assets": [
-                {
-                  "name": "${EXE_NAME}",
-                  "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${EXE_NAME}",
-                  "size": ${EXE_SIZE},
-                  "sha256": "${EXE_SHA}"
-                }
-              ]
-            }
-          }
-          EOF
+{
+  "schemaVersion": 1,
+  "version": "${VER}",
+  "channel": "stable",
+  "minimumSupportedVersion": "1.0.0",
+  "android": {
+    "versionCode": ${VERSION_CODE},
+    "assets": [
+      {
+        "name": "${APK_NAME}",
+        "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${APK_NAME}",
+        "size": ${APK_SIZE},
+        "sha256": "${APK_SHA}"
+      }
+    ]
+  },
+  "windows": {
+    "version": "${VER}",
+    "assets": [
+      {
+        "name": "${EXE_NAME}",
+        "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${EXE_NAME}",
+        "size": ${EXE_SIZE},
+        "sha256": "${EXE_SHA}"
+      }
+    ]
+  }
+}
+EOF
           cat release_assets/release-manifest.json
+
+      - name: Validate Release Assets Integrity
+        run: |
+          cd release_assets/
+          TAG="${{ github.ref_name || inputs.tag_name }}"
+          for f in "TypeBridge-Android-${TAG}.apk" "TypeBridgeSetup-${TAG}.exe" release-manifest.json sha256sums.txt; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Asset $f was not generated!"
+              exit 1
+            fi
+            echo "Verified asset: $f ($(stat -c%s "$f") bytes)"
+          done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

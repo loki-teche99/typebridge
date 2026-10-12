@@ -93,27 +93,60 @@ class UpdateCheckerThread(QThread):
             body = data.get("body", "No release notes provided.")
             published_at = data.get("published_at", "")
 
-            # Look for Windows installer in assets
+            # Look for Windows installer, manifest, and checksums in assets
             exe_url = None
             exe_size = 0
             exe_name = None
+            expected_sha256 = None
+            manifest_url = None
+            sha256sums_url = None
 
             for asset in data.get("assets", []):
-                name = asset.get("name", "")
-                if name.lower().endswith(".exe") and ("setup" in name.lower() or "typebridge" in name.lower()):
-                    exe_url = asset.get("browser_download_url")
-                    exe_size = asset.get("size", 0)
-                    exe_name = name
-                    break
-
-            if not exe_url:
-                for asset in data.get("assets", []):
-                    name = asset.get("name", "")
-                    if name.lower().endswith(".exe"):
+                aname = asset.get("name", "")
+                aname_lower = aname.lower()
+                if aname_lower.endswith(".exe") and ("setup" in aname_lower or "typebridge" in aname_lower):
+                    if not exe_url:
                         exe_url = asset.get("browser_download_url")
                         exe_size = asset.get("size", 0)
-                        exe_name = name
-                        break
+                        exe_name = aname
+                elif aname_lower.endswith(".exe") and not exe_url:
+                    exe_url = asset.get("browser_download_url")
+                    exe_size = asset.get("size", 0)
+                    exe_name = aname
+                elif aname_lower == "release-manifest.json":
+                    manifest_url = asset.get("browser_download_url")
+                elif aname_lower == "sha256sums.txt":
+                    sha256sums_url = asset.get("browser_download_url")
+
+            # Try to fetch manifest to get authoritative SHA-256 and size
+            if manifest_url:
+                try:
+                    mreq = urllib.request.Request(manifest_url, headers={"User-Agent": "TypeBridge-Desktop-Assistant"})
+                    with urllib.request.urlopen(mreq, timeout=5) as mresp:
+                        mdata = json.loads(mresp.read().decode('utf-8'))
+                        win_assets = mdata.get("windows", {}).get("assets", [])
+                        if win_assets:
+                            expected_sha256 = win_assets[0].get("sha256")
+                            msize = win_assets[0].get("size", 0)
+                            if msize > 0:
+                                exe_size = msize
+                except Exception:
+                    pass
+
+            # Fallback to sha256sums.txt
+            if not expected_sha256 and sha256sums_url:
+                try:
+                    sreq = urllib.request.Request(sha256sums_url, headers={"User-Agent": "TypeBridge-Desktop-Assistant"})
+                    with urllib.request.urlopen(sreq, timeout=5) as sresp:
+                        slines = sresp.read().decode('utf-8').splitlines()
+                        for sline in slines:
+                            if ".exe" in sline.lower():
+                                sparts = sline.strip().split()
+                                if sparts and len(sparts[0]) == 64:
+                                    expected_sha256 = sparts[0]
+                                    break
+                except Exception:
+                    pass
 
             remote_ver = re.sub(r'^[vV]', '', tag_name)
             if is_newer_version(remote_ver, self.current_ver):
@@ -126,7 +159,8 @@ class UpdateCheckerThread(QThread):
                     "filename": exe_name or f"TypeBridgeSetup-v{remote_ver}.exe",
                     "size_mb": round(exe_size / (1024 * 1024), 2) if exe_size else 0,
                     "published_at": published_at,
-                    "html_url": data.get("html_url", f"https://github.com/{repo}/releases")
+                    "html_url": data.get("html_url", f"https://github.com/{repo}/releases"),
+                    "sha256": expected_sha256
                 })
             else:
                 self.no_update_found.emit(self.current_ver)
@@ -139,29 +173,20 @@ class UpdateCheckerThread(QThread):
                 self.no_update_found.emit(self.current_ver)
                 return
 
-            # 4. Handle Rate Limiting (403, 429) with Safe Backoff
-            if e.code in (403, 429):
-                self.config.set('last_update_check_ts', int(time.time()))
-                if self.is_manual:
-                    self.check_failed.emit("GitHub API rate limit reached. Please check back later.")
-                else:
-                    self.no_update_found.emit(self.current_ver)
-                return
-
-            # Fallback to rate-limit-free web release check if API error occurs
+            # 4. Handle Rate Limiting (403, 429) & 404 via rate-limit-free Web Fallback
+            self.config.set('last_update_check_ts', int(time.time()))
             if self._check_via_web_fallback(repo):
-                self.config.set('last_update_check_ts', int(time.time()))
                 return
 
             self.no_update_found.emit(self.current_ver)
         except urllib.error.URLError:
+            self.config.set('last_update_check_ts', int(time.time()))
             if self._check_via_web_fallback(repo):
-                self.config.set('last_update_check_ts', int(time.time()))
                 return
             self.no_update_found.emit(self.current_ver)
         except Exception:
+            self.config.set('last_update_check_ts', int(time.time()))
             if self._check_via_web_fallback(repo):
-                self.config.set('last_update_check_ts', int(time.time()))
                 return
             self.no_update_found.emit(self.current_ver)
 

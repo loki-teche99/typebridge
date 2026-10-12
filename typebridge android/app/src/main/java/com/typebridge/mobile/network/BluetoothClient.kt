@@ -56,6 +56,7 @@ class BluetoothClient @Inject constructor(
     private var sessionId: String? = null
     private var sessionKey: ByteArray? = null
     private var targetDevice: BluetoothDevice? = null
+    private var connectedDeviceName: String = "Desktop"
 
     /**
      * Get list of paired Bluetooth devices that might be TypeBridge Desktop.
@@ -93,6 +94,11 @@ class BluetoothClient @Inject constructor(
 
         isManualDisconnect = false
         targetDevice = device
+        connectedDeviceName = try {
+            device.name ?: "Desktop"
+        } catch (_: SecurityException) {
+            "Desktop"
+        }
         sessionId = sId
         sessionKey = key
         _connectionState.value = ConnectionState.Connecting
@@ -116,9 +122,9 @@ class BluetoothClient @Inject constructor(
                 inputStream = DataInputStream(btSocket.inputStream)
                 outputStream = DataOutputStream(btSocket.outputStream)
 
-                Log.d(TAG, "Bluetooth connected to ${device.name}")
+                Log.d(TAG, "Bluetooth connected to $connectedDeviceName")
                 reconnectAttempt = 0
-                _connectionState.value = ConnectionState.Connected(device.name ?: "Desktop", 5L)
+                _connectionState.value = ConnectionState.Connected(connectedDeviceName, 5L)
 
                 // Start heartbeat
                 startHeartbeat()
@@ -219,7 +225,7 @@ class BluetoothClient @Inject constructor(
                     val tSent = (payload?.get("t_sent") as? Number)?.toLong() ?: 0L
                     if (tSent > 0) {
                         val latency = (System.currentTimeMillis() - tSent).coerceAtLeast(1L).coerceAtMost(999L)
-                        _connectionState.value = ConnectionState.Connected(targetDevice?.name ?: "Desktop", latency)
+                        _connectionState.value = ConnectionState.Connected(connectedDeviceName, latency)
                     }
                 } catch (_: Exception) {}
 

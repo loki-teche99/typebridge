@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
         # --- Bottom bar ----------------------------------------------- #
         bot = QHBoxLayout()
         btn_pair = QPushButton("🔗   Pair Device")
-        btn_pair.setObjectName("secondaryBtn")
+        btn_pair.setObjectName("primaryBtn")
         btn_pair.clicked.connect(self.show_pairing)
 
         btn_settings = QPushButton("⚙   Settings")

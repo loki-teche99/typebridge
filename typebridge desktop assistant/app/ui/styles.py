@@ -119,14 +119,14 @@ def get_stylesheet(theme: str = 'dark') -> str:
             font-family: 'Segoe UI', -apple-system, sans-serif;
         }
         QFrame#card {
-            background-color: #131b2e;
-            border: 1px solid #1e293b;
+            background-color: #111827;
+            border: 1px solid rgba(56, 189, 248, 0.2);
             border-radius: 14px;
             padding: 16px;
         }
         QLabel#appTitle {
-            font-size: 24px;
-            font-weight: 800;
+            font-size: 26px;
+            font-weight: 900;
             color: #ffffff;
             letter-spacing: 0.5px;
         }
@@ -135,21 +135,22 @@ def get_stylesheet(theme: str = 'dark') -> str:
             font-weight: 700;
             padding: 6px 16px;
             border-radius: 18px;
-            background-color: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(239, 68, 68, 0.2), stop:1 rgba(249, 115, 22, 0.2));
+            border: 1px solid rgba(239, 68, 68, 0.5);
             color: #f87171;
         }
         QLabel#statusBadge[connected="true"] {
-            background-color: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.4);
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(16, 185, 129, 0.25), stop:1 rgba(6, 182, 212, 0.25));
+            border: 1px solid #10b981;
             color: #34d399;
+            font-weight: 800;
         }
         QLabel#dimLabel {
             color: #94a3b8;
             font-size: 13px;
         }
         QPushButton#primaryBtn {
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4f46e5, stop:1 #06b6d4);
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:0.5 #3b82f6, stop:1 #06b6d4);
             color: #ffffff;
             font-size: 14px;
             font-weight: 700;
@@ -158,14 +159,14 @@ def get_stylesheet(theme: str = 'dark') -> str:
             padding: 11px 22px;
         }
         QPushButton#primaryBtn:hover {
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #22d3ee);
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818cf8, stop:0.5 #60a5fa, stop:1 #22d3ee);
         }
         QPushButton#primaryBtn:pressed {
             background: #4338ca;
         }
         QPushButton#secondaryBtn {
-            background-color: #1e293b;
-            color: #e2e8f0;
+            background-color: #1f293d;
+            color: #f1f5f9;
             font-size: 13px;
             font-weight: 600;
             border: 1px solid #334155;
