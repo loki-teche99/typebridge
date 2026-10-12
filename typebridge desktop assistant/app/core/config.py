@@ -29,6 +29,8 @@ class ConfigManager:
             'app_version': '1.0.0',
             'github_repo': 'loki-teche99/typebridge',
             'auto_check_updates': True,
+            'last_update_check_ts': 0,
+            'update_etag': '',
         }
         self.config = self.defaults.copy()
         self.load()

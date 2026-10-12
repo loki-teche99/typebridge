@@ -30,7 +30,14 @@ object AppUpdater {
     private const val PREFS_NAME = "typebridge_updater_prefs"
     private const val KEY_GITHUB_REPO = "github_repo"
     private const val KEY_AUTO_CHECK = "auto_check_updates"
+    private const val KEY_LAST_CHECK_TS = "last_update_check_ts"
+    private const val KEY_UPDATE_ETAG = "update_etag"
+
     const val DEFAULT_REPO = "loki-teche99/typebridge"
+    const val AUTO_CHECK_INTERVAL_MS = 168L * 3600L * 1000L // Exactly 7 days (168 hours)
+
+    @Volatile
+    private var isCheckInProgress = false
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -80,11 +87,14 @@ object AppUpdater {
     }
 
     /**
-     * Silently checks GitHub Releases API for the latest release.
-     * Returns UpdateInfo if an update is available, null if already on latest.
+     * Checks GitHub Releases API for the latest release.
+     * When isManual is false, enforces 7-day (168 hours) interval.
+     * When isManual is true, bypasses interval check immediately.
+     * Uses ETag caching (If-None-Match) to avoid exhausting GitHub rate limits.
      */
     suspend fun checkForUpdate(
         context: Context,
+        isManual: Boolean = false,
         customRepo: String? = null
     ): Result<UpdateInfo?> = withContext(Dispatchers.IO) {
         val repo = (customRepo ?: getRepoSlug(context)).trim().removePrefix("/").removeSuffix("/")
@@ -92,10 +102,30 @@ object AppUpdater {
             return@withContext Result.failure(IllegalArgumentException("Invalid repository format (expected 'owner/repo')."))
         }
 
+        // 1. In-flight request deduplication
+        synchronized(AppUpdater) {
+            if (isCheckInProgress) {
+                Log.d(TAG, "Update check already in progress. Skipping duplicate request.")
+                return@withContext Result.success(null)
+            }
+            isCheckInProgress = true
+        }
+
         try {
+            val now = System.currentTimeMillis()
+
+            // 2. 7-Day (168 Hours) Interval Enforcement for Automatic Checks
+            if (!isManual) {
+                val lastCheckTs = getPrefs(context).getLong(KEY_LAST_CHECK_TS, 0L)
+                if ((now - lastCheckTs) < AUTO_CHECK_INTERVAL_MS) {
+                    val remainingHours = (AUTO_CHECK_INTERVAL_MS - (now - lastCheckTs)) / (3600 * 1000)
+                    Log.d(TAG, "Auto-update check skipped: next check in ${remainingHours}h (7-day interval active).")
+                    return@withContext Result.success(null)
+                }
+            }
 
             val apiUrl = "https://api.github.com/repos/$repo/releases/latest"
-            Log.d(TAG, "Querying GitHub Releases API: $apiUrl")
+            Log.d(TAG, "Querying GitHub Releases API: $apiUrl (isManual=$isManual)")
 
             val url = URL(apiUrl)
             val conn = url.openConnection() as HttpURLConnection
@@ -105,16 +135,52 @@ object AppUpdater {
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
 
+            // 3. ETag Caching to Respect GitHub Rate Limits
+            val cachedEtag = getPrefs(context).getString(KEY_UPDATE_ETAG, null)
+            if (!cachedEtag.isNullOrBlank()) {
+                conn.setRequestProperty("If-None-Match", cachedEtag)
+            }
+
             val responseCode = conn.responseCode
-            if (responseCode != 200) {
-                // Rate limit (HTTP 403), repo private (404), or API error fallback:
+            Log.d(TAG, "GitHub Releases API response code: $responseCode")
+
+            // 4. Handle HTTP 304 Not Modified
+            if (responseCode == 304) {
+                Log.d(TAG, "HTTP 304 Not Modified: release unchanged according to ETag.")
+                getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
+                return@withContext Result.success(null)
+            }
+
+            // 5. Handle Rate Limiting (403, 429) with Safe Backoff
+            if (responseCode in 403..429) {
+                Log.w(TAG, "GitHub API rate limit reached ($responseCode). Safe backoff applied.")
+                getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
+                if (!isManual) {
+                    return@withContext Result.success(null)
+                }
                 val fallbackInfo = checkViaWebFallback(repo)
                 if (fallbackInfo != null) {
                     return@withContext Result.success(fallbackInfo)
                 }
-                // User is currently on latest v1.0.0. Gracefully report up-to-date!
+                return@withContext Result.failure(Exception("GitHub API rate limit reached. Please check back later."))
+            }
+
+            if (responseCode != 200) {
+                val fallbackInfo = checkViaWebFallback(repo)
+                if (fallbackInfo != null) {
+                    getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
+                    return@withContext Result.success(fallbackInfo)
+                }
                 return@withContext Result.success(null)
             }
+
+            // Store new ETag and timestamp on 200 OK
+            val newEtag = conn.getHeaderField("ETag")
+            val editor = getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now)
+            if (!newEtag.isNullOrBlank()) {
+                editor.putString(KEY_UPDATE_ETAG, newEtag)
+            }
+            editor.apply()
 
             val jsonText = conn.inputStream.bufferedReader().use { it.readText() }
             val releaseObj = JSONObject(jsonText)
@@ -191,6 +257,10 @@ object AppUpdater {
             } else {
                 Log.d(TAG, "Update check notice: ${e.message}")
                 Result.success(null)
+            }
+        } finally {
+            synchronized(AppUpdater) {
+                isCheckInProgress = false
             }
         }
     }

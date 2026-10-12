@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QFrame, QProgressBar, QPushButton, QSlider,
 )
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer
 from PyQt6.QtGui import QFont
 
 from app.core.config import ConfigManager
@@ -62,10 +62,13 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
 
-        # Remote auto-update check (runs in background)
+        # Remote auto-update check (runs in background on startup and checks every 1 hour)
         self.update_checker = None
         if self.config.get('auto_check_updates', True):
-            self.check_for_updates(silent=True)
+            self.check_for_updates(silent=True, is_manual=False)
+            self._update_timer = QTimer(self)
+            self._update_timer.timeout.connect(lambda: self.check_for_updates(silent=True, is_manual=False))
+            self._update_timer.start(3600 * 1000)  # Check every 1 hour (7-day gate enforced)
 
     # ------------------------------------------------------------------ #
     #  UI construction
@@ -245,7 +248,7 @@ class MainWindow(QMainWindow):
                 color: #7dd3fc;
             }
         """)
-        self.btn_update.clicked.connect(lambda: self.check_for_updates(silent=False))
+        self.btn_update.clicked.connect(lambda: self.check_for_updates(silent=False, is_manual=True))
         bot.addWidget(self.btn_update)
         layout.addLayout(bot)
 
@@ -429,14 +432,17 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
     #  Remote Auto-Updater
     # ------------------------------------------------------------------ #
-    def check_for_updates(self, silent: bool = False):
-        """Initiate background GitHub release check."""
+    def check_for_updates(self, silent: bool = False, is_manual: bool = False):
+        """Initiate background GitHub release check with duplicate in-flight protection."""
+        if self.update_checker and self.update_checker.isRunning():
+            return
+
         self._check_silent = silent
         if not silent:
             self.btn_update.setText("Checking GitHub...")
             self.btn_update.setEnabled(False)
 
-        self.update_checker = UpdateCheckerThread(parent=self)
+        self.update_checker = UpdateCheckerThread(is_manual=is_manual, parent=self)
         self.update_checker.update_available.connect(self._on_update_available)
         self.update_checker.no_update_found.connect(self._on_no_update_found)
         self.update_checker.check_failed.connect(self._on_update_check_failed)

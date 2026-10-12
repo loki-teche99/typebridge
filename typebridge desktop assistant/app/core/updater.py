@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import re
+import time
 import urllib.request
 import urllib.error
 import subprocess
@@ -18,6 +19,7 @@ from PyQt6.QtWidgets import QApplication
 from app.core.config import ConfigManager
 
 CURRENT_VERSION = "1.0.0"
+AUTO_CHECK_INTERVAL_SECONDS = 168 * 3600  # Exactly 7 days (168 hours)
 
 
 def parse_version(ver_str: str) -> tuple[int, ...]:
@@ -41,11 +43,12 @@ class UpdateCheckerThread(QThread):
     no_update_found  = pyqtSignal(str)   # Emits current version
     check_failed     = pyqtSignal(str)   # Emits error message
 
-    def __init__(self, repo_slug: str | None = None, parent=None):
+    def __init__(self, repo_slug: str | None = None, is_manual: bool = False, parent=None):
         super().__init__(parent)
         self.config = ConfigManager()
         self.repo_slug = repo_slug or self.config.get('github_repo', 'loki-teche99/typebridge')
         self.current_ver = self.config.get('app_version', CURRENT_VERSION)
+        self.is_manual = is_manual
 
     def run(self):
         repo = self.repo_slug.strip().strip('/')
@@ -53,17 +56,36 @@ class UpdateCheckerThread(QThread):
             self.no_update_found.emit(self.current_ver)
             return
 
+        now = time.time()
+        # 1. 7-Day (168 Hours) Interval Enforcement for Automatic Checks
+        if not self.is_manual:
+            last_ts = self.config.get('last_update_check_ts', 0)
+            if (now - last_ts) < AUTO_CHECK_INTERVAL_SECONDS:
+                # Under 168 hours have elapsed since last check.
+                # Skip network request to avoid unnecessary requests and respect rate limits.
+                self.no_update_found.emit(self.current_ver)
+                return
+
         api_url = f"https://api.github.com/repos/{repo}/releases/latest"
-        req = urllib.request.Request(
-            api_url,
-            headers={
-                "User-Agent": "TypeBridge-Desktop-Assistant",
-                "Accept": "application/vnd.github.v3+json"
-            }
-        )
+        headers = {
+            "User-Agent": "TypeBridge-Desktop-Assistant",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        # 2. ETag Caching to Avoid Wasting GitHub API Rate Limits
+        cached_etag = self.config.get('update_etag', '')
+        if cached_etag:
+            headers["If-None-Match"] = cached_etag
+
+        req = urllib.request.Request(api_url, headers=headers)
 
         try:
             with urllib.request.urlopen(req, timeout=8) as resp:
+                # Store new ETag and timestamp on 200 OK
+                new_etag = resp.headers.get("ETag")
+                if new_etag:
+                    self.config.set('update_etag', new_etag)
+                self.config.set('last_update_check_ts', int(time.time()))
+
                 data = json.loads(resp.read().decode('utf-8'))
 
             tag_name = data.get("tag_name", "")
@@ -110,18 +132,36 @@ class UpdateCheckerThread(QThread):
                 self.no_update_found.emit(self.current_ver)
 
         except urllib.error.HTTPError as e:
-            # Fallback to rate-limit-free web release check if API is rate-limited or unavailable
-            if self._check_via_web_fallback(repo):
+            # 3. Handle ETag 304 Not Modified
+            if e.code == 304:
+                # Up to date, zero rate limit impact
+                self.config.set('last_update_check_ts', int(time.time()))
+                self.no_update_found.emit(self.current_ver)
                 return
-            # If rate-limited (403/429), repo private (404), or on latest version:
-            # Report up-to-date rather than alarming the user with technical rate-limiting errors!
+
+            # 4. Handle Rate Limiting (403, 429) with Safe Backoff
+            if e.code in (403, 429):
+                self.config.set('last_update_check_ts', int(time.time()))
+                if self.is_manual:
+                    self.check_failed.emit("GitHub API rate limit reached. Please check back later.")
+                else:
+                    self.no_update_found.emit(self.current_ver)
+                return
+
+            # Fallback to rate-limit-free web release check if API error occurs
+            if self._check_via_web_fallback(repo):
+                self.config.set('last_update_check_ts', int(time.time()))
+                return
+
             self.no_update_found.emit(self.current_ver)
         except urllib.error.URLError:
             if self._check_via_web_fallback(repo):
+                self.config.set('last_update_check_ts', int(time.time()))
                 return
             self.no_update_found.emit(self.current_ver)
         except Exception:
             if self._check_via_web_fallback(repo):
+                self.config.set('last_update_check_ts', int(time.time()))
                 return
             self.no_update_found.emit(self.current_ver)
 

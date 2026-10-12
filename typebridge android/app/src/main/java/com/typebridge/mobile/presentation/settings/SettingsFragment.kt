@@ -62,7 +62,7 @@ class SettingsFragment : Fragment() {
             tvUpdateStatus.text = "Checking GitHub Releases..."
 
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val result = AppUpdater.checkForUpdate(requireContext())
+                val result = AppUpdater.checkForUpdate(requireContext(), isManual = true)
                 withContext(Dispatchers.Main) {
                     btnCheckUpdates.isEnabled = true
                     pbChecking.visibility = View.GONE

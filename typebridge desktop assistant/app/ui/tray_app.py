@@ -138,6 +138,9 @@ class TrayApp(QObject):
         act_settings = menu.addAction("Settings")
         act_settings.triggered.connect(self.main_window.show_settings)
 
+        act_update = menu.addAction("Check for Updates")
+        act_update.triggered.connect(lambda: self.main_window.check_for_updates(silent=False, is_manual=True))
+
         act_mobile = menu.addAction("📱 Get Mobile App (APK)")
         act_mobile.triggered.connect(self.main_window.open_mobile_download)
 

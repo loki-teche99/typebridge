@@ -55,17 +55,22 @@ class MainActivity : AppCompatActivity() {
         checkAutoUpdatesOnStartup()
     }
 
+    private var lastAutoCheckTime: Long = 0L
+
     override fun onResume() {
         super.onResume()
         val pending = com.typebridge.mobile.updater.UpdateDialogHelper.pendingInstallApk
         if (pending != null && com.typebridge.mobile.updater.AppUpdater.canInstallPackages(this)) {
             com.typebridge.mobile.updater.UpdateDialogHelper.pendingInstallApk = null
             com.typebridge.mobile.updater.AppUpdater.triggerInstall(this, pending)
+        } else if (System.currentTimeMillis() - lastAutoCheckTime > 30 * 60 * 1000L) {
+            checkAutoUpdatesOnStartup()
         }
     }
 
     private fun checkAutoUpdatesOnStartup() {
         if (!com.typebridge.mobile.updater.AppUpdater.isAutoCheckEnabled(this)) return
+        lastAutoCheckTime = System.currentTimeMillis()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 delay(1500)
