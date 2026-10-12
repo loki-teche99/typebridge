@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TypeBridge" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tb_primary</item>
+        <item name="colorSecondary">@color/tb_secondary</item>
+        <item name="android:windowBackground">@color/tb_bg_light</item>
+        <item name="colorSurface">@color/tb_card_light</item>
+    </style>
+</resources>

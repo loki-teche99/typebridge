@@ -1,0 +1,50 @@
+# Git Ignore for TypeBridge Multi-Platform Project
+
+# Root release binaries and archives (built artifacts)
+*.zip
+Release_Packages/
+TypeBridgeSetup-v*.exe
+TypeBridge-Android-v*.apk
+website/infinityfree_htdocs.zip
+website/htdocs/
+
+# Python / Desktop
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
+typebridge desktop assistant/build/
+typebridge desktop assistant/dist/
+typebridge desktop assistant/installer_output/
+typebridge desktop assistant/__pycache__/
+typebridge desktop assistant/app/**/__pycache__/
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+typebridge android/.gradle/
+typebridge android/build/
+typebridge android/app/build/
+typebridge android/.idea/
+typebridge android/*.iml
+typebridge android/app/*.iml
+typebridge android/local.properties
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---- SECURITY: Signing credentials (NEVER commit these) ----
+*.keystore
+*.jks
+*.p12
+*.pfx
+keystore.properties
+typebridge android/keystore.properties
+typebridge android/app/keystore.properties

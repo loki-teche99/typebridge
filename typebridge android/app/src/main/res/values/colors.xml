@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colors -->
+    <color name="tb_primary">#6366F1</color>
+    <color name="tb_primary_container">#1E1B4B</color>
+    <color name="tb_on_primary">#FFFFFF</color>
+    <color name="tb_secondary">#06B6D4</color>
+    <color name="tb_accent_cyan">#38BDF8</color>
+    
+    <!-- Dark Theme Backgrounds -->
+    <color name="tb_bg_dark">#0B0F19</color>
+    <color name="tb_card_dark">#131B2E</color>
+    <color name="tb_card_border_dark">#1E293B</color>
+    <color name="tb_input_bg_dark">#090D16</color>
+    
+    <!-- Light Theme Backgrounds -->
+    <color name="tb_bg_light">#F8FAFC</color>
+    <color name="tb_card_light">#FFFFFF</color>
+    <color name="tb_card_border_light">#E2E8F0</color>
+    
+    <!-- Text Colors -->
+    <color name="tb_text_primary_dark">#F8FAFC</color>
+    <color name="tb_text_secondary_dark">#94A3B8</color>
+    <color name="tb_text_muted_dark">#64748B</color>
+    
+    <!-- Status Colors -->
+    <color name="tb_connected">#10B981</color>
+    <color name="tb_connected_bg">#1A10B981</color>
+    <color name="tb_connecting">#F59E0B</color>
+    <color name="tb_connecting_bg">#1AF59E0B</color>
+    <color name="tb_disconnected">#EF4444</color>
+    <color name="tb_disconnected_bg">#1AEF4444</color>
+    
+    <!-- Legacy aliases -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

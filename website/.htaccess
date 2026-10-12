@@ -1,0 +1,38 @@
+# ==============================================================================
+# TypeBridge - InfinityFree / Apache .htaccess Configuration
+# ==============================================================================
+
+# 1. MIME Types for Installer & APK Downloads
+AddType application/vnd.android.package-archive .apk
+AddType application/octet-stream .exe
+
+# 2. Force Direct File Downloads (Prevent browser from opening binary files)
+<FilesMatch "\.(apk|exe)$">
+    <IfModule mod_headers.c>
+        Header set Content-Disposition "attachment"
+        Header set X-Content-Type-Options "nosniff"
+        Header set Cache-Control "public, max-age=86400"
+    </IfModule>
+</FilesMatch>
+
+# 3. Enable GZIP / Deflate Compression for Speed
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript text/javascript application/json
+</IfModule>
+
+# 4. Browser Caching for Assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+</IfModule>
+
+# 5. Security & Protection
+Options -Indexes
+ServerSignature Off
+
+# 6. Default Index
+DirectoryIndex index.html

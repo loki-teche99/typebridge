@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TypeBridge" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tb_primary</item>
+        <item name="colorSecondary">@color/tb_secondary</item>
+        <item name="android:windowBackground">@color/tb_bg_dark</item>
+        <item name="colorSurface">@color/tb_card_dark</item>
+        <item name="android:textColorPrimary">@color/tb_text_primary_dark</item>
+        <item name="android:textColorSecondary">@color/tb_text_secondary_dark</item>
+        <item name="android:statusBarColor">@color/tb_bg_dark</item>
+        <item name="android:navigationBarColor">@color/tb_bg_dark</item>
+    </style>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="card_radius">16dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="screen_padding_h">20dp</dimen>
+    <dimen name="screen_padding_v">16dp</dimen>
+    <dimen name="item_spacing">12dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="status_dot_size">12dp</dimen>
+    <dimen name="button_height">52dp</dimen>
+    <dimen name="text_title">22sp</dimen>
+    <dimen name="text_body">14sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+</resources>

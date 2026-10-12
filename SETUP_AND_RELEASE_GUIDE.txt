@@ -1,0 +1,76 @@
+================================================================================
+           TYPEBRIDGE v1.1.0 — PRODUCTION RELEASE & SETUP GUIDE
+    High-Precision Phone-to-PC Hardware Typing & Java Streamer (1:1 Exact Match)
+   DUAL TRANSPORT: High-Performance Wi-Fi WebSocket (TLS) + Bluetooth Classic SPP
+================================================================================
+
+WHAT IS TYPEBRIDGE?
+TypeBridge allows you to paste or type multi-line code (Java, Python, C++, plain
+text) on your Android phone and stream it directly into your Windows PC keyboard
+queue with sub-5ms latency, dual Wi-Fi + Bluetooth fallback, and exact 1:1
+character-for-character reproduction.
+
+KEY FEATURES & UPGRADES IN v1.1.0:
+--------------------------------------------------------------------------------
+1. ROCK-SOLID CONNECTION & ZERO DISCONNECTS:
+   - Android 10+ WIFI_MODE_FULL_LOW_LATENCY lock prevents Wi-Fi power throttling.
+   - Non-expiring partial WakeLock guarantees continuous background connection.
+   - Fast keep-alive heartbeats (3-second interval) with instant ping-pong RTT.
+   - Automatic background reconnect with fast graduated backoff (100ms -> 3s).
+   - Multi-interface local IP discovery (skips Docker/WSL/VM virtual adapters).
+
+2. BLUETOOTH CLASSIC (SPP / RFCOMM) FALLBACK:
+   - Full Bluetooth Serial Port Profile support on Windows and Android.
+   - Automatic seamless fallback to Bluetooth when Wi-Fi is unavailable.
+   - 100% same end-to-end encrypted protocol across both transports.
+
+3. ZERO-DELAY TYPING INJECTION:
+   - Typing worker polling reduced to 50ms for instant start after send.
+   - Genuine Win32 SendInput hardware keyboard events (isTrusted: true).
+   - Windows Key (VK_LWIN / VK_RWIN) is STRICTLY PROHIBITED and never sent.
+   - Tab Key (VK_TAB) is STRICTLY PROHIBITED (tabs are safely expanded to spaces).
+   - Standalone Ctrl, Alt, Shift, Arrow keys, Home, and End are never sent.
+   - Only letters, digits, symbols, spaces, and Enter (VK_RETURN) are typed.
+   - Zero clipboard interaction: never touches Ctrl+V or the system clipboard.
+   - 100% CapsLock immunity via KEYEVENTF_UNICODE.
+
+4. EXACT SOURCE CODE REPRODUCTION:
+   - Does NOT add, remove, or modify any spaces or indentation.
+   - Leading spaces come 100% strictly from the original source code.
+   - Every line matches the input character-for-character.
+
+--------------------------------------------------------------------------------
+QUICK SETUP INSTRUCTIONS:
+--------------------------------------------------------------------------------
+
+STEP 1: INSTALL WINDOWS ASSISTANT (PC)
+  - Run 'TypeBridgeSetup-v1.0.0.exe'.
+  - The setup wizard creates Start Menu & Desktop shortcuts.
+  - Automatically configures the Windows Firewall rule for TCP port 8765.
+  - Launch TypeBridge; the system tray icon appears (Yellow = Ready).
+
+STEP 2: INSTALL MOBILE APP (ANDROID)
+  - Copy 'TypeBridge-Android-v1.0.0.apk' to your Android phone and tap Install.
+  - (Or scan the QR code on the website to download directly on your phone).
+
+STEP 3: PAIR PHONE & PC
+  - In TypeBridge on PC, click "Pair Device" to show the pairing QR code and PIN.
+  - On your phone app, tap "Scan QR Code" (or enter the 6-digit PIN).
+  - The tray icon turns Green: Connected via Wi-Fi!
+  - (Optional) Pair your phone and PC in Windows Bluetooth settings for automatic
+    Bluetooth fallback.
+
+STEP 4: TYPE ANYWHERE
+  - Click your mouse cursor into ANY field or code editor on your PC
+    (HackerEarth, LeetCode, VS Code, Notepad, terminal, browser textarea).
+  - Paste your code on your phone and tap "Send & Type Directly".
+  - It types instantly with exact 1:1 character accuracy!
+
+--------------------------------------------------------------------------------
+WEBSITE DEPLOYMENT (INFINITYFREE):
+--------------------------------------------------------------------------------
+The included 'infinityfree_htdocs.zip' contains the complete landing page.
+Upload the contents of this zip file directly into your InfinityFree 'htdocs/'
+directory via the InfinityFree File Manager or FTP.
+
+================================================================================

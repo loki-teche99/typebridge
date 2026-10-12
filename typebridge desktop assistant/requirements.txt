@@ -1,0 +1,7 @@
+PyQt6
+websockets
+cryptography
+qrcode
+Pillow
+zeroconf
+pyserial
