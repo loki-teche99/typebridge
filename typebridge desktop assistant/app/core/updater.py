@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import QApplication
 
 from app.core.config import ConfigManager
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.0.1"
 AUTO_CHECK_INTERVAL_SECONDS = 168 * 3600  # Exactly 7 days (168 hours)
 
 
@@ -150,6 +150,13 @@ class UpdateCheckerThread(QThread):
 
             remote_ver = re.sub(r'^[vV]', '', tag_name)
             if is_newer_version(remote_ver, self.current_ver):
+                # Fail closed: reject untrusted releases lacking verified SHA-256 digest
+                if not expected_sha256 or len(expected_sha256.strip()) != 64:
+                    self.check_failed.emit(
+                        f"Untrusted release (v{remote_ver}): release-manifest.json or sha256sums.txt is missing valid SHA-256 digest."
+                    )
+                    return
+
                 self.update_available.emit({
                     "version": remote_ver,
                     "tag_name": tag_name,
@@ -160,99 +167,55 @@ class UpdateCheckerThread(QThread):
                     "size_mb": round(exe_size / (1024 * 1024), 2) if exe_size else 0,
                     "published_at": published_at,
                     "html_url": data.get("html_url", f"https://github.com/{repo}/releases"),
-                    "sha256": expected_sha256
+                    "sha256": expected_sha256.strip()
                 })
             else:
                 self.no_update_found.emit(self.current_ver)
 
         except urllib.error.HTTPError as e:
+            self.config.set('last_update_check_ts', int(time.time()))
             # 3. Handle ETag 304 Not Modified
             if e.code == 304:
-                # Up to date, zero rate limit impact
-                self.config.set('last_update_check_ts', int(time.time()))
                 self.no_update_found.emit(self.current_ver)
                 return
 
-            # 4. Handle Rate Limiting (403, 429) & 404 via rate-limit-free Web Fallback
-            self.config.set('last_update_check_ts', int(time.time()))
-            if self._check_via_web_fallback(repo):
+            # 4. Handle HTTP 404 (No release published yet on repository)
+            if e.code == 404:
+                self.no_update_found.emit(self.current_ver)
                 return
 
-            self.no_update_found.emit(self.current_ver)
-        except urllib.error.URLError:
-            self.config.set('last_update_check_ts', int(time.time()))
-            if self._check_via_web_fallback(repo):
+            # 5. Handle Rate Limiting (403, 429)
+            if e.code in (403, 429):
+                reset_header = e.headers.get("X-RateLimit-Reset")
+                try:
+                    reset_epoch = int(reset_header) if reset_header else int(time.time() + 3600)
+                    reset_time_str = time.strftime("%H:%M", time.localtime(reset_epoch))
+                except Exception:
+                    reset_time_str = "an hour"
+
+                if not self.is_manual:
+                    self.no_update_found.emit(self.current_ver)
+                    return
+                self.check_failed.emit(f"GitHub API rate limit exceeded. Resets at {reset_time_str}. Please try again later.")
                 return
-            self.no_update_found.emit(self.current_ver)
-        except Exception:
-            self.config.set('last_update_check_ts', int(time.time()))
-            if self._check_via_web_fallback(repo):
-                return
-            self.no_update_found.emit(self.current_ver)
 
-    def _check_via_web_fallback(self, repo: str) -> bool:
-        """
-        Bypasses GitHub REST API rate limits (60/hr) by querying public release web redirect.
-        """
-        try:
-            latest_url = f"https://github.com/{repo}/releases/latest"
-            req = urllib.request.Request(
-                latest_url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                final_url = resp.geturl()
-                tag_name = final_url.split('/')[-1]
-
-            if not tag_name or tag_name == "latest" or tag_name == "releases":
-                return False
-
-            remote_ver = re.sub(r'^[vV]', '', tag_name)
-
-            # Discover assets
-            exe_url = None
-            exe_name = None
-            exe_size = 0
-
-            try:
-                assets_url = f"https://github.com/{repo}/releases/expanded_assets/{tag_name}"
-                req2 = urllib.request.Request(
-                    assets_url,
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-                )
-                with urllib.request.urlopen(req2, timeout=10) as resp2:
-                    html = resp2.read().decode('utf-8')
-                    matches = set(re.findall(r'href=[\x22\x27](/[\w\-]+/[\w\-]+/releases/download/[^\x22\x27]+)[\x22\x27]', html))
-                    for m in matches:
-                        fname = m.split('/')[-1]
-                        if fname.lower().endswith('.exe'):
-                            exe_url = f"https://github.com{m}"
-                            exe_name = fname
-                            break
-            except Exception:
-                pass
-
-            if not exe_url:
-                exe_url = f"https://github.com/{repo}/releases/download/{tag_name}/TypeBridgeSetup-{tag_name}.exe"
-                exe_name = f"TypeBridgeSetup-{tag_name}.exe"
-
-            if is_newer_version(remote_ver, self.current_ver):
-                self.update_available.emit({
-                    "version": remote_ver,
-                    "tag_name": tag_name,
-                    "name": f"TypeBridge {tag_name}",
-                    "body": "A new version of TypeBridge is ready to install from GitHub Releases.",
-                    "download_url": exe_url,
-                    "filename": exe_name or f"TypeBridgeSetup-v{remote_ver}.exe",
-                    "size_mb": round(exe_size / (1024 * 1024), 2) if exe_size else 35.0,
-                    "published_at": "",
-                    "html_url": f"https://github.com/{repo}/releases/tag/{tag_name}"
-                })
+            if not self.is_manual:
+                self.no_update_found.emit(self.current_ver)
             else:
+                self.check_failed.emit(f"GitHub API returned HTTP {e.code}")
+
+        except urllib.error.URLError as e:
+            self.config.set('last_update_check_ts', int(time.time()))
+            if not self.is_manual:
                 self.no_update_found.emit(self.current_ver)
-            return True
-        except Exception:
-            return False
+            else:
+                self.check_failed.emit(f"Network error: {str(e.reason)}")
+        except Exception as e:
+            self.config.set('last_update_check_ts', int(time.time()))
+            if not self.is_manual:
+                self.no_update_found.emit(self.current_ver)
+            else:
+                self.check_failed.emit(f"Update check failed: {str(e)}")
 
 
 class UpdateDownloaderThread(QThread):
@@ -277,6 +240,10 @@ class UpdateDownloaderThread(QThread):
     def run(self):
         if not self.download_url:
             self.download_failed.emit("Download URL is empty or missing.")
+            return
+
+        if not self.expected_sha256 or len(self.expected_sha256.strip()) != 64:
+            self.download_failed.emit("Security check failed: Trusted 64-character SHA-256 digest is missing. Update rejected.")
             return
 
         temp_dir = os.environ.get("TEMP", os.path.expanduser("~"))
@@ -312,21 +279,28 @@ class UpdateDownloaderThread(QThread):
                         self.download_progress.emit(pct, downloaded, total_size)
 
             if os.path.exists(target_path) and os.path.getsize(target_path) > 1024:
-                # Cryptographic SHA-256 Integrity Check
-                if self.expected_sha256:
-                    import hashlib
-                    hasher = hashlib.sha256()
-                    with open(target_path, "rb") as f:
-                        for b_chunk in iter(lambda: f.read(65536), b""):
-                            hasher.update(b_chunk)
-                    computed = hasher.hexdigest().lower()
-                    if computed != self.expected_sha256.lower().strip():
-                        if os.path.exists(target_path):
-                            os.remove(target_path)
-                        self.download_failed.emit(
-                            f"Integrity check failed: SHA-256 mismatch (expected {self.expected_sha256[:8]}..., got {computed[:8]}...). File removed."
-                        )
-                        return
+                # Mandatory Cryptographic SHA-256 Integrity Verification
+                if not self.expected_sha256 or len(self.expected_sha256.strip()) != 64:
+                    if os.path.exists(target_path):
+                        os.remove(target_path)
+                    self.download_failed.emit(
+                        "Security check failed: Trusted 64-character SHA-256 digest is missing. Update rejected."
+                    )
+                    return
+
+                import hashlib
+                hasher = hashlib.sha256()
+                with open(target_path, "rb") as f:
+                    for b_chunk in iter(lambda: f.read(65536), b""):
+                        hasher.update(b_chunk)
+                computed = hasher.hexdigest().lower()
+                if computed != self.expected_sha256.lower().strip():
+                    if os.path.exists(target_path):
+                        os.remove(target_path)
+                    self.download_failed.emit(
+                        f"Integrity check failed: SHA-256 mismatch (expected {self.expected_sha256[:8]}..., got {computed[:8]}...). File removed."
+                    )
+                    return
                 self.download_finished.emit(target_path)
             else:
                 self.download_failed.emit("Downloaded file was empty or corrupted.")

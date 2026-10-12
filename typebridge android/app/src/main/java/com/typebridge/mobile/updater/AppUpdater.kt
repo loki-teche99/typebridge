@@ -151,16 +151,38 @@ object AppUpdater {
                 return@withContext Result.success(null)
             }
 
-            // 5. Handle Rate Limiting (403, 429), 404, or non-200 via rate-limit-free Web Fallback
-            if (responseCode in 403..429 || responseCode == 404 || responseCode != 200) {
-                Log.w(TAG, "GitHub REST API returned $responseCode. Using rate-limit-free web fallback.")
+            // 5. Handle HTTP 404 (No release published yet on repository)
+            if (responseCode == 404) {
+                Log.d(TAG, "HTTP 404: No releases published yet on $repo.")
                 getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
-                val fallbackInfo = checkViaWebFallback(repo)
-                if (fallbackInfo != null) {
-                    return@withContext Result.success(fallbackInfo)
-                }
-                // When web fallback finds no newer version or no release exists, user is up to date!
                 return@withContext Result.success(null)
+            }
+
+            // 6. Handle HTTP 403 / 429 (Rate limiting with header parsing)
+            if (responseCode == 403 || responseCode == 429) {
+                val resetHeader = conn.getHeaderField("X-RateLimit-Reset")
+                val resetEpochSeconds = resetHeader?.toLongOrNull() ?: ((now / 1000) + 3600)
+                val resetDate = java.util.Date(resetEpochSeconds * 1000)
+                val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                val formattedTime = timeFormat.format(resetDate)
+
+                Log.w(TAG, "GitHub API rate limit reached ($responseCode). Resets at $formattedTime.")
+                getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
+
+                if (!isManual) {
+                    return@withContext Result.success(null)
+                }
+                return@withContext Result.failure(Exception("GitHub API rate limit exceeded. Resets at $formattedTime. Please try again later."))
+            }
+
+            // 7. Handle other unexpected HTTP errors
+            if (responseCode != 200) {
+                Log.w(TAG, "GitHub API returned HTTP $responseCode.")
+                getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
+                if (!isManual) {
+                    return@withContext Result.success(null)
+                }
+                return@withContext Result.failure(java.io.IOException("GitHub API returned HTTP $responseCode"))
             }
 
             // Store new ETag and timestamp on 200 OK
@@ -287,6 +309,12 @@ object AppUpdater {
                 Log.d(TAG, "Current Version: $currentVer | Latest Release: $remoteVer (Tag: $tagName)")
 
                 if (isNewerVersion(remoteVer, currentVer)) {
+                    // Fail closed: enforce valid 64-char SHA-256 digest from release-manifest or sha256sums
+                    if (expectedSha256.isNullOrBlank() || expectedSha256.length != 64) {
+                        Log.e(TAG, "Fail closed: release $tagName lacks trusted SHA-256 digest.")
+                        return@withContext Result.failure(SecurityException("Untrusted release: release-manifest.json or sha256sums.txt is missing a valid SHA-256 digest."))
+                    }
+
                     val updateInfo = UpdateInfo(
                         versionName = remoteVer,
                         tagName = tagName,
@@ -303,54 +331,16 @@ object AppUpdater {
                     Result.success(null)
                 }
         } catch (e: Exception) {
-            val fallback = checkViaWebFallback(repo)
-            if (fallback != null) {
-                Result.success(fallback)
-            } else {
-                Log.d(TAG, "Update check notice: ${e.message}")
+            Log.e(TAG, "Update check failed: ${e.message}", e)
+            if (!isManual) {
                 Result.success(null)
+            } else {
+                Result.failure(e)
             }
         } finally {
             synchronized(AppUpdater) {
                 isCheckInProgress = false
             }
-        }
-    }
-
-    private fun checkViaWebFallback(repo: String): UpdateInfo? {
-        return try {
-            val latestUrl = "https://github.com/$repo/releases/latest"
-            val conn = java.net.URL(latestUrl).openConnection() as java.net.HttpURLConnection
-            conn.instanceFollowRedirects = true
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
-            conn.inputStream.close()
-            val finalUrl = conn.url.toString()
-            val tagName = finalUrl.substringAfterLast("/")
-            if (tagName.isEmpty() || tagName == "latest" || tagName == "releases") {
-                return null
-            }
-            val remoteVer = tagName.removePrefix("v").removePrefix("V")
-            val currentVer = BuildConfig.VERSION_NAME
-            if (isNewerVersion(remoteVer, currentVer)) {
-                val apkUrl = "https://github.com/$repo/releases/download/$tagName/TypeBridge-Android-$tagName.apk"
-                UpdateInfo(
-                    versionName = remoteVer,
-                    tagName = tagName,
-                    releaseName = "TypeBridge $tagName",
-                    changelog = "A new version of TypeBridge ($tagName) is ready to install from GitHub Releases.",
-                    apkDownloadUrl = apkUrl,
-                    apkFileName = "TypeBridge-Android-$tagName.apk",
-                    apkSize = 0L,
-                    publishedAt = ""
-                )
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Web fallback check failed: ${e.message}")
-            null
         }
     }
 
@@ -432,22 +422,39 @@ object AppUpdater {
 
             Log.d(TAG, "APK download complete: ${targetFile.length()} bytes")
 
-            // Verify file size if known
+            // Strict fail-closed integrity verification
+            // 1. Mandatory SHA-256 digest
+            if (updateInfo.sha256.isNullOrBlank() || updateInfo.sha256.length != 64) {
+                targetFile.delete()
+                Log.e(TAG, "Fail closed: update missing trusted 64-character SHA-256 digest.")
+                return@withContext Result.failure(SecurityException("APK installation rejected: missing trusted SHA-256 digest."))
+            }
+
+            // 2. Verify file size if known
             if (updateInfo.apkSize > 0 && targetFile.length() != updateInfo.apkSize) {
                 targetFile.delete()
                 Log.e(TAG, "APK size mismatch! Expected: ${updateInfo.apkSize}, got: ${targetFile.length()}")
                 return@withContext Result.failure(java.io.IOException("APK file size mismatch (truncated download). File removed."))
             }
 
-            if (!updateInfo.sha256.isNullOrBlank()) {
-                val isValid = verifySha256(targetFile, updateInfo.sha256)
-                if (!isValid) {
-                    targetFile.delete()
-                    Log.e(TAG, "APK failed SHA-256 verification!")
-                    return@withContext Result.failure(SecurityException("APK SHA-256 checksum mismatch. Download rejected."))
-                }
-                Log.d(TAG, "APK passed SHA-256 integrity verification successfully.")
+            // 3. Cryptographic SHA-256 hash match
+            val isValid = verifySha256(targetFile, updateInfo.sha256)
+            if (!isValid) {
+                targetFile.delete()
+                Log.e(TAG, "APK failed SHA-256 verification!")
+                return@withContext Result.failure(SecurityException("APK SHA-256 checksum mismatch. Download rejected."))
             }
+            Log.d(TAG, "APK passed SHA-256 integrity verification successfully.")
+
+            // 4. Verify package archive integrity and application ID
+            val pm = context.packageManager
+            val archiveInfo = pm.getPackageArchiveInfo(targetFile.absolutePath, 0)
+            if (archiveInfo == null || archiveInfo.packageName != context.packageName) {
+                targetFile.delete()
+                Log.e(TAG, "Downloaded package invalid or packageName does not match ${context.packageName}")
+                return@withContext Result.failure(SecurityException("Downloaded package is invalid or does not match application ID."))
+            }
+
             Result.success(targetFile)
         } catch (e: Exception) {
             Log.e(TAG, "Download APK failed: ${e.message}", e)

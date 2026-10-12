@@ -26,7 +26,7 @@ class ConfigManager:
             'bluetooth_enabled': True,
             'bluetooth_com_port': 'auto',
             'connection_mode': 'auto',
-            'app_version': '1.0.0',
+            'app_version': '1.0.1',
             'github_repo': 'loki-teche99/typebridge',
             'auto_check_updates': True,
             'last_update_check_ts': 0,

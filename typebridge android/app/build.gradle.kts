@@ -17,8 +17,8 @@ android {
         applicationId = "com.typebridge.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,7 +36,10 @@ android {
             val ksPath = keystoreProps.getProperty("storeFile")
                 ?: System.getenv("KEYSTORE_PATH")
                 ?: "typebridge-release.keystore"
-            storeFile = file(ksPath)
+            val ksFile = file(ksPath)
+            if (ksFile.exists()) {
+                storeFile = ksFile
+            }
             storePassword = keystoreProps.getProperty("storePassword")
                 ?: System.getenv("KEYSTORE_STORE_PASSWORD")
                 ?: ""
@@ -56,14 +59,20 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            val ks = signingConfigs.getByName("release")
+            if (ks.storeFile?.exists() == true) {
+                signingConfig = ks
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            val ks = signingConfigs.getByName("release")
+            if (ks.storeFile?.exists() == true) {
+                signingConfig = ks
+            }
         }
     }
 

@@ -173,20 +173,18 @@ class TestUpdateLogic(unittest.TestCase):
         self.assertGreater(self.config.get('last_update_check_ts'), 0)
         self.assertEqual(len(no_update_emitted), 1)
 
-    @patch.object(UpdateCheckerThread, "_check_via_web_fallback")
     @patch("urllib.request.urlopen")
-    def test_manual_check_under_rate_limit_uses_web_fallback(self, mock_urlopen, mock_web_fallback):
-        """Manual check under HTTP 403 uses web fallback seamlessly without failing."""
+    def test_manual_check_under_rate_limit_emits_helpful_error(self, mock_urlopen):
+        """Manual check under HTTP 403 parses X-RateLimit-Reset and emits helpful message."""
         import urllib.error
         http_403_error = urllib.error.HTTPError(
             url="https://api.github.com/repos/loki-teche99/typebridge/releases/latest",
             code=403,
             msg="rate limit exceeded",
-            hdrs={},
+            hdrs={"X-RateLimit-Reset": str(int(time.time() + 1800))},
             fp=None
         )
         mock_urlopen.side_effect = http_403_error
-        mock_web_fallback.return_value = True
 
         thread = UpdateCheckerThread(is_manual=True)
         failed_emitted = []
@@ -194,10 +192,30 @@ class TestUpdateLogic(unittest.TestCase):
 
         thread.run()
 
-        # Web fallback must be called
-        mock_web_fallback.assert_called_once()
-        # check_failed must NOT be emitted
-        self.assertEqual(len(failed_emitted), 0)
+        self.assertEqual(len(failed_emitted), 1)
+        self.assertIn("rate limit exceeded", failed_emitted[0].lower())
+        self.assertIn("resets at", failed_emitted[0].lower())
+
+    @patch("urllib.request.urlopen")
+    def test_http_404_no_release_emits_no_update_found(self, mock_urlopen):
+        """HTTP 404 indicates no releases published yet; emits no_update_found gracefully."""
+        import urllib.error
+        http_404_error = urllib.error.HTTPError(
+            url="https://api.github.com/repos/loki-teche99/typebridge/releases/latest",
+            code=404,
+            msg="Not Found",
+            hdrs={},
+            fp=None
+        )
+        mock_urlopen.side_effect = http_404_error
+
+        thread = UpdateCheckerThread(is_manual=True)
+        no_update_emitted = []
+        thread.no_update_found.connect(lambda v: no_update_emitted.append(v))
+
+        thread.run()
+
+        self.assertEqual(len(no_update_emitted), 1)
 
     @patch("urllib.request.urlopen")
     def test_manifest_parsing_populates_sha256(self, mock_urlopen):
@@ -289,9 +307,56 @@ class TestUpdateLogic(unittest.TestCase):
         self.assertEqual(len(failed_msg), 1)
         self.assertIn("Integrity check failed: SHA-256 mismatch", failed_msg[0])
 
+    @patch("urllib.request.urlopen")
+    def test_missing_manifest_sha256_fails_closed(self, mock_urlopen):
+        """When release lacks SHA-256 digest, UpdateCheckerThread fails closed and emits check_failed."""
+        release_json = {
+            "tag_name": "v1.2.0",
+            "name": "TypeBridge v1.2.0",
+            "body": "No manifest release",
+            "assets": [
+                {
+                    "name": "TypeBridgeSetup-v1.2.0.exe",
+                    "browser_download_url": "https://example.com/TypeBridgeSetup-v1.2.0.exe",
+                    "size": 38000000
+                }
+            ]
+        }
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(release_json).encode()
+        mock_resp.headers = {}
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        thread = UpdateCheckerThread(is_manual=True)
+        update_info = []
+        check_failed_msg = []
+        thread.update_available.connect(lambda info: update_info.append(info))
+        thread.check_failed.connect(lambda msg: check_failed_msg.append(msg))
+
+        thread.run()
+
+        # Must fail closed: NO update_available emitted
+        self.assertEqual(len(update_info), 0)
+        self.assertEqual(len(check_failed_msg), 1)
+        self.assertIn("untrusted release", check_failed_msg[0].lower())
+
+    def test_downloader_missing_sha256_fails_closed(self):
+        """Downloader without expected SHA-256 must immediately reject and fail closed."""
+        from app.core.updater import UpdateDownloaderThread
+        downloader = UpdateDownloaderThread(
+            download_url="https://example.com/TypeBridgeSetup-v1.2.0.exe",
+            version="1.2.0",
+            expected_sha256=None
+        )
+        failed_msg = []
+        downloader.download_failed.connect(lambda msg: failed_msg.append(msg))
+        downloader.run()
+        self.assertEqual(len(failed_msg), 1)
+        self.assertIn("trusted 64-character sha-256 digest is missing", failed_msg[0].lower())
+
 
 if __name__ == "__main__":
-    import json
     unittest.main()
 
 

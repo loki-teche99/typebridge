@@ -56,7 +56,7 @@
                         android:id="@+id/tvVersionLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Version 1.0.0 (Production Release)"
+                        android:text="Version 1.0.1 (Production Release)"
                         android:textSize="13sp"
                         android:textColor="@color/tb_text_secondary_dark" />
                 </LinearLayout>

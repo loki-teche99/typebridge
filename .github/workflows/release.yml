@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (e.g. v1.0.0)'
+        description: 'Release Tag (e.g. v1.0.1)'
         required: true
-        default: 'v1.0.0'
+        default: 'v1.0.1'
 
 permissions:
   contents: write
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -34,11 +36,14 @@ jobs:
           cd "typebridge android"
           chmod +x gradlew
 
-      - name: Setup Keystore
+      - name: Setup Keystore & Signing Credentials
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
         run: |
           cd "typebridge android/app"
           if [ -n "$KEYSTORE_BASE64" ]; then
@@ -49,12 +54,16 @@ jobs:
             exit 1
           fi
 
+          PASS="${KEYSTORE_STORE_PASSWORD:-${KEYSTORE_PASSWORD}}"
+          KEY_PASS="${KEYSTORE_KEY_PASSWORD:-$PASS}"
+          ALIAS="${KEYSTORE_KEY_ALIAS:-${KEY_ALIAS:-typebridge}}"
+
+          echo "KEYSTORE_PATH=typebridge-release.keystore" >> $GITHUB_ENV
+          echo "KEYSTORE_STORE_PASSWORD=$PASS" >> $GITHUB_ENV
+          echo "KEYSTORE_KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
+          echo "KEYSTORE_KEY_ALIAS=$ALIAS" >> $GITHUB_ENV
+
       - name: Build Release APK
-        env:
-          KEYSTORE_PATH: "typebridge-release.keystore"
-          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || env.KEYSTORE_STORE_PASSWORD }}
-          KEYSTORE_KEY_ALIAS: ${{ secrets.KEY_ALIAS || env.KEYSTORE_KEY_ALIAS }}
-          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || env.KEYSTORE_KEY_PASSWORD }}
         run: |
           cd "typebridge android"
           ./gradlew assembleRelease --no-daemon
@@ -71,6 +80,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -106,6 +117,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
@@ -172,36 +185,35 @@ jobs:
             VERSION_CODE=1
           fi
           
-          cat <<EOF > release_assets/release-manifest.json
-{
-  "schemaVersion": 1,
-  "version": "${VER}",
-  "channel": "stable",
-  "minimumSupportedVersion": "1.0.0",
-  "android": {
-    "versionCode": ${VERSION_CODE},
-    "assets": [
-      {
-        "name": "${APK_NAME}",
-        "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${APK_NAME}",
-        "size": ${APK_SIZE},
-        "sha256": "${APK_SHA}"
-      }
-    ]
-  },
-  "windows": {
-    "version": "${VER}",
-    "assets": [
-      {
-        "name": "${EXE_NAME}",
-        "url": "https://github.com/${{ github.repository }}/releases/download/${TAG}/${EXE_NAME}",
-        "size": ${EXE_SIZE},
-        "sha256": "${EXE_SHA}"
-      }
-    ]
-  }
-}
-EOF
+          python3 -c "
+          import json
+          manifest = {
+            'schemaVersion': 1,
+            'version': '${VER}',
+            'channel': 'stable',
+            'minimumSupportedVersion': '1.0.0',
+            'android': {
+              'versionCode': int('${VERSION_CODE}'),
+              'assets': [{
+                'name': '${APK_NAME}',
+                'url': 'https://github.com/${{ github.repository }}/releases/download/${TAG}/${APK_NAME}',
+                'size': int('${APK_SIZE}'),
+                'sha256': '${APK_SHA}'
+              }]
+            },
+            'windows': {
+              'version': '${VER}',
+              'assets': [{
+                'name': '${EXE_NAME}',
+                'url': 'https://github.com/${{ github.repository }}/releases/download/${TAG}/${EXE_NAME}',
+                'size': int('${EXE_SIZE}'),
+                'sha256': '${EXE_SHA}'
+              }]
+            }
+          }
+          with open('release_assets/release-manifest.json', 'w') as f:
+            json.dump(manifest, f, indent=2)
+          "
           cat release_assets/release-manifest.json
 
       - name: Validate Release Assets Integrity

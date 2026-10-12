@@ -57,4 +57,4 @@ jobs:
       - name: Run Android Lint & Check
         run: |
           cd "typebridge android"
-          ./gradlew check --no-daemon
+          ./gradlew check --no-daemon --stacktrace

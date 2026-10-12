@@ -2,7 +2,7 @@
 ; Generates a professional Windows Setup Installer (.exe)
 
 #define MyAppName "TypeBridge"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "TypeBridge"
 #define MyAppURL "https://typebridge.42web.io/"
 #define MyAppExeName "TypeBridge.exe"
@@ -20,7 +20,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=installer_output
-OutputBaseFilename=TypeBridgeSetup-v1.0.0
+OutputBaseFilename=TypeBridgeSetup-v1.0.1
 SetupIconFile=assets\icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes

@@ -55,7 +55,7 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("TypeBridge")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("1.0.1")
     app.setOrganizationName("TypeBridge")
     app.setQuitOnLastWindowClosed(False)
 

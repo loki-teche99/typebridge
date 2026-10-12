@@ -72,15 +72,16 @@ def main():
     iss_file = os.path.join(ROOT_DIR, "installer.iss")
     subprocess.run([iscc_path, iss_file], check=True)
 
-    setup_exe = os.path.join(ROOT_DIR, "installer_output", "TypeBridgeSetup-v1.0.0.exe")
-    if os.path.exists(setup_exe):
+    setup_candidates = [f for f in os.listdir(os.path.join(ROOT_DIR, "installer_output")) if f.startswith("TypeBridgeSetup-") and f.endswith(".exe")]
+    if setup_candidates:
+        setup_exe = os.path.join(ROOT_DIR, "installer_output", setup_candidates[0])
         setup_size_mb = os.path.getsize(setup_exe) / (1024 * 1024)
         log(f"[SUCCESS] Windows Installer Ready:\n{setup_exe}\nSize: {setup_size_mb:.2f} MB")
 
         # Copy to Release_Packages and website/downloads
         parent_dir = os.path.dirname(ROOT_DIR)
-        rel_pkg = os.path.join(parent_dir, "Release_Packages", "TypeBridgeSetup-v1.0.0.exe")
-        web_pkg = os.path.join(parent_dir, "website", "downloads", "TypeBridgeSetup-v1.0.0.exe")
+        rel_pkg = os.path.join(parent_dir, "Release_Packages", setup_candidates[0])
+        web_pkg = os.path.join(parent_dir, "website", "downloads", setup_candidates[0])
         os.makedirs(os.path.dirname(rel_pkg), exist_ok=True)
         os.makedirs(os.path.dirname(web_pkg), exist_ok=True)
         shutil.copy2(setup_exe, rel_pkg)

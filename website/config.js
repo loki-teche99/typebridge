@@ -9,7 +9,7 @@
 
 const TYPEBRIDGE_CONFIG = {
   // Direct 1-Click Download URL (GitHub Official Release Asset — instant, permanent direct link)
-  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.0/TypeBridgeSetup-v1.0.0.exe",
+  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
 
   // Official GitHub Releases Mirror
   windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases/latest",
@@ -21,12 +21,12 @@ const TYPEBRIDGE_CONFIG = {
   websiteUrl: "https://typebridge.42web.io/",
 
   // Android APK Direct Download URL
-  androidApkUrl: "downloads/TypeBridge-Android-v1.0.0.apk",
+  androidApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
 
   // Metadata
-  version: "v1.0.0",
-  windowsSize: "36.85 MB",
-  androidSize: "9.34 MB",
+  version: "v1.0.1",
+  windowsSize: "36.86 MB",
+  androidSize: "9.42 MB",
   bluetooth: true,
   connectionModes: "WiFi + Bluetooth SPP"
 };

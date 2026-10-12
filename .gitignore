@@ -7,6 +7,7 @@ TypeBridgeSetup-v*.exe
 TypeBridge-Android-v*.apk
 website/infinityfree_htdocs.zip
 website/htdocs/
+website/downloads/
 
 # Python / Desktop
 __pycache__/

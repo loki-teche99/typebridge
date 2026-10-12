@@ -41,11 +41,13 @@ def build_package():
                 print(f"  [+] Added asset: assets/{asset_file}")
 
     # 4. Copy Android APK (under 10MB for direct InfinityFree hosting)
-    apk_src = os.path.join(WEBSITE_DIR, "downloads", "TypeBridge-Android-v1.0.0.apk")
-    if os.path.exists(apk_src):
-        shutil.copy2(apk_src, os.path.join(HTDOCS_DIR, "downloads", "TypeBridge-Android-v1.0.0.apk"))
+    apk_candidates = [f for f in os.listdir(os.path.join(WEBSITE_DIR, "downloads")) if f.startswith("TypeBridge-Android-") and f.endswith(".apk")]
+    apk_file = "TypeBridge-Android-v1.0.1.apk" if "TypeBridge-Android-v1.0.1.apk" in apk_candidates else (apk_candidates[0] if apk_candidates else None)
+    if apk_file:
+        apk_src = os.path.join(WEBSITE_DIR, "downloads", apk_file)
+        shutil.copy2(apk_src, os.path.join(HTDOCS_DIR, "downloads", apk_file))
         apk_mb = os.path.getsize(apk_src) / (1024 * 1024)
-        print(f"  [+] Added: downloads/TypeBridge-Android-v1.0.0.apk ({apk_mb:.2f} MB)")
+        print(f"  [+] Added: downloads/{apk_file} ({apk_mb:.2f} MB)")
 
     # 5. Note: Windows Setup is directly downloaded via GitHub Official Release direct link:
     # https://github.com/loki-teche99/typebridge/releases/download/v1.0.0/TypeBridgeSetup-v1.0.0.exe
