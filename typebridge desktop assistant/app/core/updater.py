@@ -47,6 +47,8 @@ class UpdateCheckerThread(QThread):
         super().__init__(parent)
         self.config = ConfigManager()
         self.repo_slug = repo_slug or self.config.get('github_repo', 'loki-teche99/typebridge')
+        if self.repo_slug == 'v4358137-lang/typebridge':
+            self.repo_slug = 'loki-teche99/typebridge'
         self.current_ver = self.config.get('app_version', CURRENT_VERSION)
         self.is_manual = is_manual
 

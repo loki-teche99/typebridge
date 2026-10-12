@@ -154,7 +154,7 @@ class SettingsDialog(QDialog):
         self.config.set('theme', self.cmb_theme.currentText())
         self.config.set('server_port', self.spin_port.value())
         self.config.set('start_with_windows', self.chk_startup.isChecked())
-        self.config.set('github_repo', 'v4358137-lang/typebridge')
+        self.config.set('github_repo', 'loki-teche99/typebridge')
         self.config.set('auto_check_updates', self.chk_auto_update.isChecked())
 
         set_run_at_startup(self.chk_startup.isChecked())

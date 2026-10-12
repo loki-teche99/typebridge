@@ -43,6 +43,9 @@ class ConfigManager:
                     self.config.update(data)
             except Exception:
                 pass
+        if self.config.get('github_repo') == 'v4358137-lang/typebridge':
+            self.config['github_repo'] = 'loki-teche99/typebridge'
+            self.save()
                 
     def save(self):
         with open(self.config_path, 'w') as f:
