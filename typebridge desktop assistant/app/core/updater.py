@@ -82,10 +82,7 @@ class UpdateCheckerThread(QThread):
 
         try:
             with urllib.request.urlopen(req, timeout=8) as resp:
-                # Store new ETag and timestamp on 200 OK
                 new_etag = resp.headers.get("ETag")
-                if new_etag:
-                    self.config.set('update_etag', new_etag)
                 self.config.set('last_update_check_ts', int(time.time()))
 
                 data = json.loads(resp.read().decode('utf-8'))
@@ -152,6 +149,9 @@ class UpdateCheckerThread(QThread):
 
             remote_ver = re.sub(r'^[vV]', '', tag_name)
             if is_newer_version(remote_ver, self.current_ver):
+                # Pending update available: clear ETag so future manual or auto checks will never get 304 and suppress it
+                self.config.set('update_etag', '')
+
                 # Fail closed: reject untrusted releases lacking verified SHA-256 digest
                 if not expected_sha256 or len(expected_sha256.strip()) != 64:
                     self.check_failed.emit(
@@ -172,6 +172,9 @@ class UpdateCheckerThread(QThread):
                     "sha256": expected_sha256.strip()
                 })
             else:
+                # App is up to date: now safe to store ETag for weekly auto-check optimization
+                if new_etag:
+                    self.config.set('update_etag', new_etag)
                 self.no_update_found.emit(self.current_ver)
 
         except urllib.error.HTTPError as e:

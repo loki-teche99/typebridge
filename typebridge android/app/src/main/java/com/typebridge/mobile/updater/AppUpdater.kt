@@ -135,10 +135,12 @@ object AppUpdater {
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
 
-            // 3. ETag Caching to Respect GitHub Rate Limits
-            val cachedEtag = getPrefs(context).getString(KEY_UPDATE_ETAG, null)
-            if (!cachedEtag.isNullOrBlank()) {
-                conn.setRequestProperty("If-None-Match", cachedEtag)
+            // 3. ETag Caching to Respect GitHub Rate Limits (automatic checks only; manual checks bypass)
+            if (!isManual) {
+                val cachedEtag = getPrefs(context).getString(KEY_UPDATE_ETAG, null)
+                if (!cachedEtag.isNullOrBlank()) {
+                    conn.setRequestProperty("If-None-Match", cachedEtag)
+                }
             }
 
             val responseCode = conn.responseCode
@@ -185,13 +187,9 @@ object AppUpdater {
                 return@withContext Result.failure(java.io.IOException("GitHub API returned HTTP $responseCode"))
             }
 
-            // Store new ETag and timestamp on 200 OK
+            // Store timestamp on 200 OK
             val newEtag = conn.getHeaderField("ETag")
-            val editor = getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now)
-            if (!newEtag.isNullOrBlank()) {
-                editor.putString(KEY_UPDATE_ETAG, newEtag)
-            }
-            editor.apply()
+            getPrefs(context).edit().putLong(KEY_LAST_CHECK_TS, now).apply()
 
             val jsonText = conn.inputStream.bufferedReader().use { it.readText() }
             val releaseObj = JSONObject(jsonText)
@@ -309,6 +307,9 @@ object AppUpdater {
                 Log.d(TAG, "Current Version: $currentVer | Latest Release: $remoteVer (Tag: $tagName)")
 
                 if (isNewerVersion(remoteVer, currentVer)) {
+                    // Pending update available: clear ETag so future manual or auto checks will never get 304 and suppress it
+                    getPrefs(context).edit().remove(KEY_UPDATE_ETAG).apply()
+
                     // Fail closed: enforce valid 64-char SHA-256 digest from release-manifest or sha256sums
                     if (expectedSha256.isNullOrBlank() || expectedSha256.length != 64) {
                         Log.e(TAG, "Fail closed: release $tagName lacks trusted SHA-256 digest.")
@@ -328,6 +329,10 @@ object AppUpdater {
                     )
                     Result.success(updateInfo)
                 } else {
+                    // App is up to date: now safe to store ETag for weekly auto-check optimization
+                    if (!newEtag.isNullOrBlank()) {
+                        getPrefs(context).edit().putString(KEY_UPDATE_ETAG, newEtag).apply()
+                    }
                     Result.success(null)
                 }
         } catch (e: Exception) {
