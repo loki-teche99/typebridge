@@ -26,7 +26,6 @@ TypeBridge is designed for local peer-to-peer productivity between a trusted mob
 
 ## Reporting a Vulnerability
 
-If you discover a potential security vulnerability in TypeBridge, please report it privately:
-- **Email**: `security@typebridge.42web.io` or open a private GitHub Security Advisory at [https://github.com/loki-teche99/typebridge/security/advisories](https://github.com/loki-teche99/typebridge/security/advisories).
+
 - Do **not** open public issues for sensitive security vulnerabilities.
 - Please include reproduction steps, environment details, and proof of concept where possible.
