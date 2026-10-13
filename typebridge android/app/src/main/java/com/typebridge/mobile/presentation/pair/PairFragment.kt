@@ -29,10 +29,19 @@ class PairFragment : Fragment() {
 
     private val viewModel: PairViewModel by viewModels()
 
-    // Modern ZXing barcode scanner ActivityResult contract
+    private var lastScanTimestamp = 0L
+
+    // Modern sensor-aware QR scanner ActivityResult contract with debouncing
     private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
-        if (result != null && result.contents != null) {
-            viewModel.pairFromQr(result.contents)
+        val now = System.currentTimeMillis()
+        if (now - lastScanTimestamp < 1500L) {
+            return@registerForActivityResult // Prevent rapid duplicate pairing triggers
+        }
+        lastScanTimestamp = now
+
+        if (result != null && !result.contents.isNullOrBlank()) {
+            val content = result.contents.trim()
+            viewModel.pairFromQr(content)
         }
     }
 
@@ -132,10 +141,13 @@ class PairFragment : Fragment() {
 
     private fun startQrScan() {
         val options = ScanOptions().apply {
-            setPrompt("Scan TypeBridge Desktop QR Code")
+            setCaptureActivity(PortraitCaptureActivity::class.java)
+            setPrompt("Align the QR code within the frame\nHold phone in portrait or landscape")
             setBeepEnabled(true)
             setOrientationLocked(false)
             setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setCameraId(0) // Back camera default
+            setTimeout(60000L) // 60s timeout
         }
         qrScannerLauncher.launch(options)
     }

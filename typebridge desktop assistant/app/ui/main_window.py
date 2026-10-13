@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
         self._lbl_current = QLabel("Waiting for text from Android…")
         self._lbl_current.setWordWrap(True)
         self._lbl_current.setObjectName("dimLabel")
-        self._lbl_current.setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; color: #cbd5e1;")
+        self._lbl_current.setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; color: #cbd5e1; background: transparent;")
 
         self._progress = QProgressBar()
         self._progress.setRange(0, 100)
@@ -232,23 +232,43 @@ class MainWindow(QMainWindow):
         lbl_ver.setObjectName("dimLabel")
         bot.addWidget(lbl_ver)
 
-        self.btn_update = QPushButton("✨ Check for Updates")
-        self.btn_update.setObjectName("linkBtn")
-        self.btn_update.setStyleSheet("""
-            QPushButton#linkBtn {
-                background: transparent;
-                color: #38bdf8;
-                border: none;
-                font-size: 11px;
-                text-decoration: underline;
-                padding: 2px 6px;
-                cursor: pointer;
-            }
-            QPushButton#linkBtn:hover {
-                color: #7dd3fc;
-            }
-        """)
-        self.btn_update.clicked.connect(lambda: self.check_for_updates(silent=False, is_manual=True))
+        if getattr(self.config, 'is_msix', False):
+            self.btn_update = QPushButton("🏪 Microsoft Store Edition")
+            self.btn_update.setObjectName("linkBtn")
+            self.btn_update.setToolTip("TypeBridge is installed from the Microsoft Store. Updates are managed automatically by Windows.")
+            self.btn_update.setStyleSheet("""
+                QPushButton#linkBtn {
+                    background: transparent;
+                    color: #38bdf8;
+                    border: none;
+                    font-size: 11px;
+                    padding: 2px 6px;
+                }
+                QPushButton#linkBtn:hover {
+                    color: #7dd3fc;
+                    text-decoration: underline;
+                }
+            """)
+            self.btn_update.clicked.connect(self._open_store_page)
+        else:
+            self.btn_update = QPushButton("✨ Check for Updates")
+            self.btn_update.setObjectName("linkBtn")
+            self.btn_update.setStyleSheet("""
+                QPushButton#linkBtn {
+                    background: transparent;
+                    color: #38bdf8;
+                    border: none;
+                    font-size: 11px;
+                    text-decoration: underline;
+                    padding: 2px 6px;
+                    cursor: pointer;
+                }
+                QPushButton#linkBtn:hover {
+                    color: #7dd3fc;
+                }
+            """)
+            self.btn_update.clicked.connect(lambda: self.check_for_updates(silent=False, is_manual=True))
+
         bot.addWidget(self.btn_update)
         layout.addLayout(bot)
 
@@ -414,6 +434,12 @@ class MainWindow(QMainWindow):
         from PyQt6.QtCore import QUrl
         QDesktopServices.openUrl(QUrl("https://typebridge.42web.io/"))
 
+    def _open_store_page(self):
+        """Open official Microsoft Store product listing for updates."""
+        from PyQt6.QtGui import QDesktopServices
+        from PyQt6.QtCore import QUrl
+        QDesktopServices.openUrl(QUrl("ms-windows-store://pdp/?ProductId=9PL56S4CL4NW"))
+
     def closeEvent(self, event):
         # Hide to tray instead of quitting
         event.ignore()
@@ -481,12 +507,11 @@ class MainWindow(QMainWindow):
             )
 
     def _on_update_check_failed(self, err_msg: str):
-        self.btn_update.setText("✨ Up to date")
+        self.btn_update.setText("✨ Check for Updates")
         self.btn_update.setEnabled(True)
         if not getattr(self, '_check_silent', False):
             from PyQt6.QtWidgets import QMessageBox
-            current_ver = getattr(self, 'config', None) and self.config.get('app_version', '1.0.0') or '1.0.0'
-            QMessageBox.information(
+            QMessageBox.warning(
                 self, "TypeBridge Updater",
-                f"You are running the latest version (v{current_ver})!\n\nNo updates are needed."
+                f"Could not check for updates:\n\n{err_msg}"
             )

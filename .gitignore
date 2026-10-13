@@ -22,8 +22,11 @@ venv/
 typebridge desktop assistant/build/
 typebridge desktop assistant/dist/
 typebridge desktop assistant/installer_output/
+typebridge desktop assistant/msix_output/
 typebridge desktop assistant/__pycache__/
 typebridge desktop assistant/app/**/__pycache__/
+*.msix
+*.msixupload
 
 # Android / Gradle
 .gradle/

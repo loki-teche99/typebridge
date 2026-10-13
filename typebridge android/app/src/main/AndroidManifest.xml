@@ -65,9 +65,16 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="typebridge" android:host="pair" />
             </intent-filter>
         </activity>
+
+        <!-- ===== Custom Portrait & Sensor-Aware QR Scanner Activity ===== -->
+        <activity
+            android:name=".presentation.pair.PortraitCaptureActivity"
+            android:screenOrientation="fullSensor"
+            android:stateNotNeeded="true"
+            android:theme="@style/zxing_CaptureTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" />
 
         <!-- ===== Foreground Service ===== -->
         <service
