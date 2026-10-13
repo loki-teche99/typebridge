@@ -560,6 +560,42 @@ code {
   box-shadow: 0 14px 36px -4px rgba(14, 165, 233, 0.75);
 }
 
+.btn-ms-store {
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+  color: #ffffff !important;
+  box-shadow: 0 10px 28px -6px rgba(0, 120, 212, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-ms-store:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #1288e0 0%, #006bbd 100%);
+  box-shadow: 0 14px 36px -4px rgba(0, 120, 212, 0.75);
+  color: #ffffff !important;
+}
+
+.ms-logo-svg {
+  flex-shrink: 0;
+}
+
+.btn-download-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.92rem;
+  padding: 12px 20px;
+  margin-top: 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.btn-download-secondary:hover {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.4);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
 .btn-download-android {
   background: var(--gradient-emerald);
   color: #021a11;

@@ -1,29 +1,36 @@
 /**
- * TypeBridge Website Configuration v1.0.0
+ * TypeBridge Website Configuration v1.0.1
  * ==============================================================================
- * Windows and Android download endpoints.
- * - Windows Setup: Hosted on GitHub Releases Direct (35.0 MB)
- * - Android APK: Hosted in downloads/TypeBridge-Android-v1.0.0.apk (9.3 MB)
+ * Official Download Endpoints & Metadata
+ * - Windows Store: Official Microsoft Store Product URL
+ * - Windows Standalone: GitHub Releases Direct (.exe)
+ * - Android APK: Hosted in downloads/TypeBridge-Android-v1.0.1.apk (9.42 MB)
  * ==============================================================================
  */
 
 const TYPEBRIDGE_CONFIG = {
-  // Direct 1-Click Download URL (GitHub Official Release Asset — instant, permanent direct link)
+  // 1. Primary Windows Download: Microsoft Store Official Product Page
+  windowsStoreUrl: "https://apps.microsoft.com/detail/9PL56S4CL4NW?hl=en-us&gl=IN&ocid=pdpshare",
+  windowsStoreProtocolUrl: "ms-windows-store://pdp/?ProductId=9PL56S4CL4NW",
+  microsoftStoreId: "9PL56S4CL4NW",
+
+  // 2. Secondary Windows Download: Direct Standalone Installer (.exe)
   windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
 
-  // Official GitHub Releases Mirror
+  // 3. Official GitHub Releases Mirror
   windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases/latest",
 
-  // Google Drive Mirror
+  // 4. Google Drive Mirror
   windowsGoogleDriveUrl: "https://drive.google.com/file/d/1MS4w9QSdMCanvwc0j7m4Q3BCf1WsxjFa/view?usp=sharing",
 
-  // Official Website URL
+  // 5. Official Website Canonical URL
   websiteUrl: "https://typebridge.42web.io/",
 
-  // Android APK Direct Download URL
+  // 6. Android APK Direct Download URL
   androidApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
+  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk",
 
-  // Metadata
+  // 7. Version Metadata
   version: "v1.0.1",
   windowsSize: "36.86 MB",
   androidSize: "9.42 MB",
