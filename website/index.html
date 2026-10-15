@@ -443,7 +443,7 @@
             </ul>
 
             <div class="card-action-box">
-              <a id="btnDownloadAndroid" href="downloads/TypeBridge-Android-v1.0.1.apk" download="TypeBridge-Android-v1.0.1.apk" class="btn btn-download-android">
+              <a id="btnDownloadAndroid" href="https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk" class="btn btn-download-android" title="Download TypeBridge Android APK">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
                 <span>📲 1-Click Download APK (v1.0.1)</span>
               </a>
@@ -1242,7 +1242,7 @@
         windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
         windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases/latest",
         windowsGoogleDriveUrl: "https://drive.google.com/file/d/1MS4w9QSdMCanvwc0j7m4Q3BCf1WsxjFa/view?usp=sharing",
-        androidApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
+        androidApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk",
         androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk"
       };
 
@@ -1263,21 +1263,14 @@
       // Render / Update QR Code with 100% Reliability
       const qrTarget = document.getElementById('qrCanvas');
       if (qrTarget) {
-        let apkUrl = cfg.androidApkUrl || "downloads/TypeBridge-Android-v1.0.1.apk";
-        if (!apkUrl.startsWith('http://') && !apkUrl.startsWith('https://')) {
-          if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            apkUrl = window.location.origin + window.location.pathname.replace(/index\.html$/, '').replace(/\/$/, '') + '/' + apkUrl;
-          } else {
-            apkUrl = "https://typebridge.42web.io/" + apkUrl.replace(/^\//, '');
-          }
-        }
+        let apkUrl = cfg.androidApkUrl || "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk";
 
         // Enable click-to-download on QR holder for desktop convenience
         qrTarget.style.cursor = 'pointer';
         qrTarget.onclick = () => { window.location.href = cfg.androidApkUrl; };
 
         // Dynamic re-render only if URL is non-standard and QRCode constructor is present
-        const defaultProdUrl = "https://typebridge.42web.io/downloads/TypeBridge-Android-v1.0.1.apk";
+        const defaultProdUrl = "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk";
         if (apkUrl !== defaultProdUrl && typeof QRCode === 'function') {
           try {
             qrTarget.innerHTML = '';

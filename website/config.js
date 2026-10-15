@@ -4,7 +4,7 @@
  * Official Download Endpoints & Metadata
  * - Windows Store: Official Microsoft Store Product URL
  * - Windows Standalone: GitHub Releases Direct (.exe)
- * - Android APK: Hosted in downloads/TypeBridge-Android-v1.0.1.apk (9.42 MB)
+ * - Android APK: High-speed direct release CDN (100% guaranteed delivery)
  * ==============================================================================
  */
 
@@ -26,8 +26,9 @@ const TYPEBRIDGE_CONFIG = {
   // 5. Official Website Canonical URL
   websiteUrl: "https://typebridge.42web.io/",
 
-  // 6. Android APK Direct Download URL
-  androidApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
+  // 6. Android APK Direct Download URL (Official High-Speed GitHub Releases CDN — 100% Reliable, Instant 1-Click)
+  androidApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk",
+  androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
   androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk",
 
   // 7. Version Metadata

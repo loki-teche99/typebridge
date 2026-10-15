@@ -24,7 +24,15 @@ def build_package():
     os.makedirs(os.path.join(HTDOCS_DIR, "downloads"), exist_ok=True)
 
     # 2. Copy core website files
-    core_files = ["index.html", "styles.css", "config.js", ".htaccess", "robots.txt", "sitemap.xml"]
+    core_files = [
+        "index.html",
+        "styles.css",
+        "config.js",
+        ".htaccess",
+        "robots.txt",
+        "sitemap.xml",
+        "download_apk.php"
+    ]
     for f in core_files:
         src = os.path.join(WEBSITE_DIR, f)
         if os.path.exists(src):
@@ -40,7 +48,7 @@ def build_package():
                 shutil.copy2(s_file, os.path.join(HTDOCS_DIR, "assets", asset_file))
                 print(f"  [+] Added asset: assets/{asset_file}")
 
-    # 4. Copy Android APK (under 10MB for direct InfinityFree hosting) and checksums
+    # 4. Copy Android APK and gateway scripts to downloads/
     apk_candidates = [f for f in os.listdir(os.path.join(WEBSITE_DIR, "downloads")) if f.startswith("TypeBridge-Android-") and f.endswith(".apk")]
     apk_file = "TypeBridge-Android-v1.0.1.apk" if "TypeBridge-Android-v1.0.1.apk" in apk_candidates else (apk_candidates[0] if apk_candidates else None)
     if apk_file:
@@ -49,6 +57,13 @@ def build_package():
         apk_mb = os.path.getsize(apk_src) / (1024 * 1024)
         print(f"  [+] Added: downloads/{apk_file} ({apk_mb:.2f} MB)")
 
+    # Copy PHP fallback gateways inside downloads/
+    php_src = os.path.join(WEBSITE_DIR, "download_apk.php")
+    if os.path.exists(php_src):
+        shutil.copy2(php_src, os.path.join(HTDOCS_DIR, "downloads", "download_apk.php"))
+        shutil.copy2(php_src, os.path.join(HTDOCS_DIR, "downloads", "index.php"))
+        print("  [+] Added: downloads/download_apk.php & downloads/index.php")
+
     # Copy release manifest and checksums if present
     for meta_file in ["release-manifest.json", "sha256sums.txt"]:
         meta_src = os.path.join(WEBSITE_DIR, "downloads", meta_file)
@@ -56,19 +71,24 @@ def build_package():
             shutil.copy2(meta_src, os.path.join(HTDOCS_DIR, "downloads", meta_file))
             print(f"  [+] Added: downloads/{meta_file}")
 
-    # 5. Note: Windows Setup is directly downloaded via GitHub Official Release direct link:
-    # https://github.com/loki-teche99/typebridge/releases/download/v1.0.0/TypeBridgeSetup-v1.0.0.exe
-    print("  [+] Configured: Windows Setup link -> GitHub Official Release Direct Download")
+    # 5. Note: Downloads route directly to high-speed verified endpoints
+    print("  [+] Configured: Windows Store -> Official Microsoft Store Direct PDP Link")
+    print("  [+] Configured: Windows Setup -> GitHub Official Release Direct Download")
+    print("  [+] Configured: Android APK   -> GitHub Official Release Direct Download CDN")
 
-    # 6. Create ZIP file
+    # 6. Create ZIP file with explicit directory entries and normalized Unix forward slashes
     if os.path.exists(ZIP_OUTPUT):
         os.remove(ZIP_OUTPUT)
 
     with zipfile.ZipFile(ZIP_OUTPUT, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Explicit directory records
+        zf.writestr(zipfile.ZipInfo("assets/"), "")
+        zf.writestr(zipfile.ZipInfo("downloads/"), "")
+
         for root, dirs, files in os.walk(HTDOCS_DIR):
             for file in files:
                 abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, HTDOCS_DIR)
+                rel_path = os.path.relpath(abs_path, HTDOCS_DIR).replace("\\", "/")
                 zf.write(abs_path, rel_path)
 
     zip_size_mb = os.path.getsize(ZIP_OUTPUT) / (1024 * 1024)
