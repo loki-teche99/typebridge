@@ -25,8 +25,11 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import com.typebridge.mobile.domain.repository.DeviceRepository
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 private const val TAG = "WebSocketClient"
@@ -36,7 +39,8 @@ class WebSocketClient @Inject constructor(
     @ApplicationContext private val context: Context,
     private val client: OkHttpClient,
     private val cryptoEngine: CryptoEngine,
-    private val gson: Gson
+    private val gson: Gson,
+    private val deviceRepositoryProvider: Provider<DeviceRepository>
 ) {
     @Volatile
     private var webSocket: WebSocket? = null
@@ -67,20 +71,9 @@ class WebSocketClient @Inject constructor(
                 .build()
             cm?.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    Log.d(TAG, "Network restored. Checking connection state...")
+                    Log.d(TAG, "Network restored. Triggering self-healing reconnect...")
                     if (!isManualDisconnect && _connectionState.value !is ConnectionState.Connected) {
-                        val ip = activeIp
-                        val sId = sessionId
-                        val key = sessionKey
-                        if (ip != null && sId != null && key != null) {
-                            scope.launch {
-                                delay(300)
-                                if (!isManualDisconnect && _connectionState.value !is ConnectionState.Connected) {
-                                    Log.d(TAG, "Triggering immediate network-restored reconnect to $ip:$activePort")
-                                    connect(ip, activePort, sId, key)
-                                }
-                            }
-                        }
+                        scheduleReconnect()
                     }
                 }
             })
@@ -108,9 +101,10 @@ class WebSocketClient @Inject constructor(
         sessionId = sId
         sessionKey = key
 
-        // If already connected to this IP and socket is open, don't duplicate
-        if (_connectionState.value is ConnectionState.Connected && webSocket != null) {
-            Log.d(TAG, "Already connected to $cleanIp:$port")
+        // If already connected or connecting to this IP, don't duplicate
+        val currentState = _connectionState.value
+        if ((currentState is ConnectionState.Connected || currentState is ConnectionState.Connecting) && webSocket != null && activeIp == cleanIp) {
+            Log.d(TAG, "Already connected or connecting to $cleanIp:$port")
             return
         }
 
@@ -189,13 +183,13 @@ class WebSocketClient @Inject constructor(
                     val tSent = (payload?.get("t_sent") as? Number)?.toLong() ?: 0L
                     val isEcho = (payload?.get("is_echo") as? Boolean) ?: false
 
-                    if (tSent > 0) {
-                        val latency = (System.currentTimeMillis() - tSent).coerceAtLeast(1L).coerceAtMost(999L)
+                    if (isEcho && tSent > 0) {
+                        // Phone sent tSent, desktop echoed it back -> True Round-Trip Time (RTT in ms)
+                        val now = System.currentTimeMillis()
+                        val latency = (now - tSent).coerceAtLeast(1L).coerceAtMost(999L)
                         _connectionState.value = ConnectionState.Connected(activeIp ?: "Desktop", latency)
-                    }
-
-                    // If message is from Desktop and not an echo, send back echo
-                    if (!isEcho && msg.payload != null) {
+                    } else if (!isEcho && msg.payload != null) {
+                        // Desktop sent its own heartbeat; reply with echo immediately
                         val echoPayload = gson.toJson(mapOf(
                             "t_sent" to tSent,
                             "is_echo" to true
@@ -327,10 +321,13 @@ class WebSocketClient @Inject constructor(
             // Send initial ping immediately on connection to verify RTT instantly
             sendHeartbeatPing()
             while (_connectionState.value is ConnectionState.Connected) {
-                delay(3000)
+                delay(1200L) // Real-time 1.2s ping cadence
                 if (_connectionState.value !is ConnectionState.Connected) break
                 val sent = sendHeartbeatPing()
-                if (!sent) break
+                if (!sent) {
+                    Log.w(TAG, "Heartbeat ping failed to send")
+                    break
+                }
             }
         }
     }
@@ -342,9 +339,6 @@ class WebSocketClient @Inject constructor(
 
     private fun scheduleReconnect() {
         if (isManualDisconnect) return
-        val ip = activeIp ?: return
-        val sId = sessionId ?: return
-        val key = sessionKey ?: return
 
         reconnectJob?.cancel()
         
@@ -352,16 +346,36 @@ class WebSocketClient @Inject constructor(
         TypeBridgeService.startSafely(context)
 
         reconnectJob = scope.launch {
+            // If activeIp or sessionKey is null, attempt recovery from device repository
+            if (activeIp == null || sessionKey == null) {
+                try {
+                    val devices = deviceRepositoryProvider.get().getDevices().first()
+                    val paired = devices.firstOrNull()
+                    if (paired != null && paired.sessionKey.isNotEmpty()) {
+                        activeIp = paired.ip
+                        activePort = paired.port
+                        sessionId = paired.sessionId
+                        sessionKey = paired.sessionKey
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error recovering paired device: ${e.message}")
+                }
+            }
+
+            val ip = activeIp ?: return@launch
+            val sId = sessionId ?: return@launch
+            val key = sessionKey ?: return@launch
+
             reconnectAttempt++
             _connectionState.value = ConnectionState.Reconnecting(reconnectAttempt, 0)
             
-            // Progressive backoff: quick retry first (100ms, 500ms), then 1-3s, maxing at 3s
+            // Ultra-responsive immediate retry on first attempt (50ms), then gentle ramp
             val backoffMs = when {
-                reconnectAttempt <= 1 -> 100L
-                reconnectAttempt <= 2 -> 500L
-                reconnectAttempt <= 4 -> 1000L
-                reconnectAttempt <= 8 -> 2000L
-                else -> 3000L
+                reconnectAttempt <= 1 -> 50L
+                reconnectAttempt <= 3 -> 300L
+                reconnectAttempt <= 6 -> 800L
+                reconnectAttempt <= 10 -> 1500L
+                else -> 2000L
             }
             Log.d(TAG, "Scheduling self-healing reconnect #$reconnectAttempt in ${backoffMs}ms to $ip:$activePort...")
             delay(backoffMs)

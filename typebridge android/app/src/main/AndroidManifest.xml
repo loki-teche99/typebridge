@@ -35,6 +35,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".TypeBridgeApp"
@@ -81,6 +82,11 @@
             android:name=".service.TypeBridgeService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <!-- ===== Floating Overlay Service ===== -->
+        <service
+            android:name=".service.FloatingOverlayService"
+            android:exported="false" />
 
         <!-- ===== Package Update FileProvider ===== -->
         <provider

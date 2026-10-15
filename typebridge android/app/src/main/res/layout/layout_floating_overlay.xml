@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:padding="8dp">
+
+    <!-- Floating Circular Bubble (Touch Target) -->
+    <FrameLayout
+        android:id="@+id/bubbleLayout"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_overlay_bubble"
+        android:elevation="10dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/imgBubbleLogo"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_launcher_round"
+            android:contentDescription="TypeBridge Bubble" />
+
+        <!-- Live Connection Status Indicator Dot -->
+        <View
+            android:id="@+id/overlayStatusDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_overlay_status_dot"
+            android:elevation="12dp" />
+    </FrameLayout>
+
+    <!-- Expandable Actions Pill Menu -->
+    <LinearLayout
+        android:id="@+id/menuLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="8dp"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp"
+        android:background="@drawable/bg_overlay_menu"
+        android:elevation="10dp"
+        android:visibility="gone">
+
+        <!-- Paste Action Button -->
+        <TextView
+            android:id="@+id/btnOverlayPaste"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:gravity="center"
+            android:paddingHorizontal="14dp"
+            android:text="📋 PASTE"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_overlay_btn_paste"
+            android:layout_marginEnd="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Send & Type Action Button -->
+        <TextView
+            android:id="@+id/btnOverlaySend"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:gravity="center"
+            android:paddingHorizontal="14dp"
+            android:text="⚡ SEND &amp; TYPE"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_overlay_btn_send"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Close / Minimize Button -->
+        <ImageView
+            android:id="@+id/btnOverlayClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="Collapse Menu"
+            android:layout_marginStart="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+</LinearLayout>

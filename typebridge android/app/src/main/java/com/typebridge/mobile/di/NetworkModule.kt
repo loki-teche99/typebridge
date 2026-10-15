@@ -29,7 +29,7 @@ object NetworkModule {
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS) // No timeout for long-lived WebSocket
             .writeTimeout(10, TimeUnit.SECONDS)
-            // App-level JSON heartbeats at 5s handle keep-alive; no OkHttp protocol pings needed
+            .pingInterval(3, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
     }

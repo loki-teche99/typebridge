@@ -313,21 +313,21 @@ class WebSocketServer(QObject):
         # ---- HEARTBEAT ----------------------------------------------- #
         elif mtype == MessageType.HEARTBEAT:
             self._ensure_session()
+            is_echo = False
             try:
                 payload = json.loads(msg.get('payload', '{}')) if msg.get('payload') else {}
                 t_sent = payload.get('t_sent', 0)
-                if t_sent > 0:
+                is_echo = bool(payload.get('is_echo', False))
+                if is_echo and t_sent > 0:
                     now_ms = int(time.time() * 1000)
-                    self.latency_ms = max(1, now_ms - t_sent)
-                else:
-                    self.latency_ms = 5  # Fallback RTT estimate
+                    self.latency_ms = max(1, min(999, now_ms - t_sent))
             except Exception:
-                self.latency_ms = 5
+                pass
 
             self._heartbeat_miss_count = 0
             self._last_heartbeat_received = time.time()
 
-            quality = 'excellent' if self.latency_ms < 20 else ('good' if self.latency_ms < 100 else 'poor')
+            quality = 'excellent' if self.latency_ms < 30 else ('good' if self.latency_ms < 100 else 'fair')
 
             self.connection_signal.emit({
                 'status':      'connected',
@@ -343,7 +343,7 @@ class WebSocketServer(QObject):
                 asyncio.ensure_future(self._heartbeat_loop(websocket))
 
             # If this is not an echo, reply back to Android immediately so it confirms connection & latency
-            if not payload.get('is_echo', False):
+            if not is_echo:
                 t_sent_val = payload.get('t_sent', int(time.time() * 1000))
                 resp_payload = json.dumps({'t_sent': t_sent_val, 'is_echo': True})
                 resp = MessageBuilder.build(
@@ -379,7 +379,7 @@ class WebSocketServer(QObject):
     async def _heartbeat_loop(self, websocket):
         try:
             while True:
-                await asyncio.sleep(5)
+                await asyncio.sleep(2)
                 if self.active_websocket is not websocket:
                     break
                 try:

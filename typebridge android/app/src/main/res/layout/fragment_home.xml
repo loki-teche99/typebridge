@@ -76,19 +76,78 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Floating Screen Overlay Quick Toggle -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardOverlayToggle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/tb_card_border_dark"
+        app:cardBackgroundColor="@color/tb_card_dark"
+        app:layout_constraintTop_toBottomOf="@id/cardStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="8dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@mipmap/ic_launcher_round"
+                android:layout_marginEnd="10dp"
+                android:contentDescription="Overlay" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Floating Screen Button"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/tb_text_primary_dark" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Paste &amp; Send to PC from any app"
+                    android:textSize="11sp"
+                    android:textColor="@color/tb_text_secondary_dark" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchFloatingOverlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Main Text Input Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardInput"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="12dp"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:strokeWidth="1dp"
         app:strokeColor="@color/tb_card_border_dark"
         app:cardBackgroundColor="@color/tb_card_dark"
-        app:layout_constraintTop_toBottomOf="@id/cardStatus"
+        app:layout_constraintTop_toBottomOf="@id/cardOverlayToggle"
         app:layout_constraintBottom_toTopOf="@id/modeRow"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

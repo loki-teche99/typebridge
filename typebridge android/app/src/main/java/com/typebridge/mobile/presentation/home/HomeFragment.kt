@@ -3,8 +3,12 @@ package com.typebridge.mobile.presentation.home
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -22,8 +26,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.typebridge.mobile.R
 import com.typebridge.mobile.domain.model.ConnectionState
+import com.typebridge.mobile.service.FloatingOverlayService
 import com.typebridge.mobile.utils.JavaCodeFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -51,6 +57,7 @@ class HomeFragment : Fragment() {
         val statusText = view.findViewById<TextView>(R.id.statusText)
         val statusDetail = view.findViewById<TextView>(R.id.statusDetail)
         val latencyBadge = view.findViewById<TextView>(R.id.latencyBadge)
+        val switchFloatingOverlay = view.findViewById<MaterialSwitch>(R.id.switchFloatingOverlay)
         val editTextInput = view.findViewById<EditText>(R.id.editTextInput)
         val lblCharCount = view.findViewById<TextView>(R.id.lblCharCount)
         val btnPaste = view.findViewById<Button>(R.id.btnPaste)
@@ -63,6 +70,44 @@ class HomeFragment : Fragment() {
         val btnModeJava = view.findViewById<MaterialButton>(R.id.btnModeJava)
         val btnModeIde = view.findViewById<MaterialButton>(R.id.btnModeIde)
         val btnModeRaw = view.findViewById<MaterialButton>(R.id.btnModeRaw)
+
+        // Floating Screen Overlay Switch Setup
+        val prefs = requireContext().getSharedPreferences("typebridge_prefs", Context.MODE_PRIVATE)
+        val hasOverlayPerm = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(requireContext())
+        val isOverlayActive = hasOverlayPerm && (FloatingOverlayService.isRunning || prefs.getBoolean("pref_floating_overlay", false))
+        switchFloatingOverlay.isChecked = isOverlayActive
+        if (isOverlayActive && !FloatingOverlayService.isRunning) {
+            FloatingOverlayService.start(requireContext())
+        }
+
+        switchFloatingOverlay.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(requireContext())) {
+                    switchFloatingOverlay.isChecked = false
+                    Toast.makeText(
+                        requireContext(),
+                        "Enable 'Display over other apps' to use TypeBridge floating button",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:${requireContext().packageName}")
+                    )
+                    startActivity(intent)
+                } else {
+                    prefs.edit().putBoolean("pref_floating_overlay", true).apply()
+                    FloatingOverlayService.start(requireContext())
+                    Toast.makeText(
+                        requireContext(),
+                        "✨ Floating Screen Button active! Tap it anytime to Paste & Type.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                prefs.edit().putBoolean("pref_floating_overlay", false).apply()
+                FloatingOverlayService.stop(requireContext())
+            }
+        }
 
         // Tap-to-reconnect header
         val statusHeaderClick = View.OnClickListener {
@@ -254,6 +299,12 @@ class HomeFragment : Fragment() {
                                 statusDetail.text = state.deviceName
                                 latencyBadge.visibility = View.VISIBLE
                                 latencyBadge.text = "${state.latencyMs} ms"
+                                val badgeColor = when {
+                                    state.latencyMs <= 35 -> ContextCompat.getColor(ctx, R.color.tb_connected)
+                                    state.latencyMs <= 90 -> ContextCompat.getColor(ctx, R.color.tb_accent_cyan)
+                                    else -> ContextCompat.getColor(ctx, R.color.tb_connecting)
+                                }
+                                latencyBadge.setTextColor(badgeColor)
                             }
                             is ConnectionState.Connecting -> {
                                 statusDot.backgroundTintList = ColorStateList.valueOf(
@@ -342,5 +393,24 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         viewModel.reconnectIfDisconnected()
+
+        // Sync overlay toggle switch if user enabled permission in system settings
+        val switchFloatingOverlay = view?.findViewById<MaterialSwitch>(R.id.switchFloatingOverlay)
+        val prefs = context?.getSharedPreferences("typebridge_prefs", Context.MODE_PRIVATE)
+        val hasOverlayPerm = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || (context != null && Settings.canDrawOverlays(context))
+        if (hasOverlayPerm && prefs?.getBoolean("pref_floating_overlay", false) == true) {
+            context?.let { FloatingOverlayService.start(it) }
+            switchFloatingOverlay?.isChecked = true
+        }
+
+        // Pull any text pasted via floating overlay into editor
+        val editTextInput = view?.findViewById<EditText>(R.id.editTextInput)
+        FloatingOverlayService.lastPastedText?.let { pasted ->
+            if (editTextInput != null && editTextInput.text.isEmpty()) {
+                editTextInput.setText(pasted)
+                editTextInput.setSelection(pasted.length)
+            }
+            FloatingOverlayService.lastPastedText = null
+        }
     }
 }
