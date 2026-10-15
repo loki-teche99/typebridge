@@ -63,6 +63,60 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Floating Screen Button Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/tb_card_border_dark"
+            app:cardBackgroundColor="@color/tb_card_dark">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌐 Floating Screen Button"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/tb_text_primary_dark"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Shows a circular TypeBridge logo over other apps. Move it anywhere on screen. Tap to Paste or Send &amp; Type to your PC from WhatsApp, Chrome, Notes, or any app."
+                    android:textSize="12sp"
+                    android:textColor="@color/tb_text_secondary_dark"
+                    android:layout_marginBottom="16dp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchOverlaySettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Floating Screen Button"
+                    android:textSize="14sp"
+                    android:textColor="@color/tb_text_primary_dark"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvOverlayPermHint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Requires 'Display over other apps' permission"
+                    android:textSize="11sp"
+                    android:textColor="@color/tb_accent_cyan" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Remote GitHub Auto-Updater Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

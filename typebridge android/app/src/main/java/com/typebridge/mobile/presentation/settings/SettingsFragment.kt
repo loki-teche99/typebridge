@@ -1,6 +1,11 @@
 package com.typebridge.mobile.presentation.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.typebridge.mobile.BuildConfig
 import com.typebridge.mobile.R
+import com.typebridge.mobile.service.FloatingOverlayService
 import com.typebridge.mobile.updater.AppUpdater
 import com.typebridge.mobile.updater.UpdateDialogHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,6 +42,8 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val tvVersionLabel = view.findViewById<TextView>(R.id.tvVersionLabel)
+        val switchOverlaySettings = view.findViewById<SwitchMaterial>(R.id.switchOverlaySettings)
+        val tvOverlayPermHint = view.findViewById<TextView>(R.id.tvOverlayPermHint)
         val switchAutoCheck = view.findViewById<SwitchMaterial>(R.id.switchAutoCheck)
         val btnCheckUpdates = view.findViewById<MaterialButton>(R.id.btnCheckUpdates)
         val layoutUpdateStatus = view.findViewById<View>(R.id.layoutUpdateStatus)
@@ -44,6 +52,46 @@ class SettingsFragment : Fragment() {
 
         // Set version label
         tvVersionLabel.text = "Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})"
+
+        // Floating Screen Button Setup
+        val prefs = requireContext().getSharedPreferences("typebridge_prefs", Context.MODE_PRIVATE)
+        val hasOverlayPerm = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(requireContext())
+        val isOverlayActive = hasOverlayPerm && (FloatingOverlayService.isRunning || prefs.getBoolean("pref_floating_overlay", false))
+        switchOverlaySettings.isChecked = isOverlayActive
+        tvOverlayPermHint.text = if (hasOverlayPerm) "✅ Permission granted • Ready to float over apps" else "⚠️ Requires 'Display over other apps' permission"
+
+        if (isOverlayActive && !FloatingOverlayService.isRunning) {
+            FloatingOverlayService.start(requireContext())
+        }
+
+        switchOverlaySettings.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(requireContext())) {
+                    switchOverlaySettings.isChecked = false
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("Floating Button Permission")
+                        .setMessage("TypeBridge needs the 'Display over other apps' permission so you can move the circular button anywhere on screen and Paste or Type into PC from other apps like WhatsApp and Chrome.\n\nPlease toggle ON 'Allow display over other apps' on the next screen.")
+                        .setPositiveButton("Open Settings") { _, _ ->
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:${requireContext().packageName}")
+                            )
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                } else {
+                    prefs.edit().putBoolean("pref_floating_overlay", true).apply()
+                    FloatingOverlayService.start(requireContext())
+                    tvOverlayPermHint.text = "✅ Permission granted • Ready to float over apps"
+                    Toast.makeText(requireContext(), "✨ Floating Screen Button active! Move it anywhere on screen.", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                prefs.edit().putBoolean("pref_floating_overlay", false).apply()
+                FloatingOverlayService.stop(requireContext())
+                Toast.makeText(requireContext(), "Floating Screen Button disabled", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Load saved preferences
         val context = requireContext()
@@ -113,6 +161,20 @@ class SettingsFragment : Fragment() {
             val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
             clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("TypeBridge Diagnostics", report))
             Toast.makeText(requireContext(), "Diagnostics copied to clipboard!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val switchOverlaySettings = view?.findViewById<SwitchMaterial>(R.id.switchOverlaySettings)
+        val tvOverlayPermHint = view?.findViewById<TextView>(R.id.tvOverlayPermHint)
+        val prefs = context?.getSharedPreferences("typebridge_prefs", Context.MODE_PRIVATE)
+        val hasOverlayPerm = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || (context != null && Settings.canDrawOverlays(context))
+        tvOverlayPermHint?.text = if (hasOverlayPerm) "✅ Permission granted • Ready to float over apps" else "⚠️ Requires 'Display over other apps' permission"
+
+        if (hasOverlayPerm && prefs?.getBoolean("pref_floating_overlay", false) == true) {
+            context?.let { FloatingOverlayService.start(it) }
+            switchOverlaySettings?.isChecked = true
         }
     }
 }

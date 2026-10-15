@@ -86,7 +86,8 @@
         <!-- ===== Floating Overlay Service ===== -->
         <service
             android:name=".service.FloatingOverlayService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
 
         <!-- ===== Package Update FileProvider ===== -->
         <provider

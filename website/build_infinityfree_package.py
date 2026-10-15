@@ -50,8 +50,7 @@ def build_package():
 
     # 4. Copy Android APK and gateway scripts to downloads/
     apk_candidates = [f for f in os.listdir(os.path.join(WEBSITE_DIR, "downloads")) if f.startswith("TypeBridge-Android-") and f.endswith(".apk")]
-    apk_file = "TypeBridge-Android-v1.0.1.apk" if "TypeBridge-Android-v1.0.1.apk" in apk_candidates else (apk_candidates[0] if apk_candidates else None)
-    if apk_file:
+    for apk_file in apk_candidates:
         apk_src = os.path.join(WEBSITE_DIR, "downloads", apk_file)
         shutil.copy2(apk_src, os.path.join(HTDOCS_DIR, "downloads", apk_file))
         apk_mb = os.path.getsize(apk_src) / (1024 * 1024)
