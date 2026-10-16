@@ -77,6 +77,15 @@
             android:theme="@style/zxing_CaptureTheme"
             android:windowSoftInputMode="stateAlwaysHidden" />
 
+        <!-- ===== Transparent Trampoline Activity for Zero-Flicker Clipboard Access ===== -->
+        <activity
+            android:name=".service.ClipboardBridgeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TypeBridge.Transparent"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity="" />
+
         <!-- ===== Foreground Service ===== -->
         <service
             android:name=".service.TypeBridgeService"

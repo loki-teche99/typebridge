@@ -59,6 +59,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Sync Floating Screen Overlay service state
+        val prefs = getSharedPreferences("typebridge_prefs", android.content.Context.MODE_PRIVATE)
+        val overlayPref = prefs.getBoolean("pref_floating_overlay", false)
+        val hasOverlayPerm = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || android.provider.Settings.canDrawOverlays(this)
+        if (overlayPref && hasOverlayPerm && !com.typebridge.mobile.service.FloatingOverlayService.isRunning) {
+            com.typebridge.mobile.service.FloatingOverlayService.start(this)
+        }
+
         val pending = com.typebridge.mobile.updater.UpdateDialogHelper.pendingInstallApk
         if (pending != null && com.typebridge.mobile.updater.AppUpdater.canInstallPackages(this)) {
             com.typebridge.mobile.updater.UpdateDialogHelper.pendingInstallApk = null

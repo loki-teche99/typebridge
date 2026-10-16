@@ -1,29 +1,33 @@
 # ==============================================================================
-# TypeBridge - InfinityFree / Apache .htaccess Configuration
+# TypeBridge - Production .htaccess Configuration (v1.0.2)
+# Optimized for InfinityFree Apache Hosting & Fast Worldwide Downloads
 # ==============================================================================
 
-# 1. Automatic Fallback: Route APK and EXE requests to high-speed GitHub Release CDN
+# 1. Routing & Direct Download Convenience
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^downloads/TypeBridge-Android.*\.apk$ https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk [R=302,L]
-    RewriteRule ^downloads/TypeBridgeSetup.*\.exe$ https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe [R=302,L]
+    # Friendly download shortcuts
+    RewriteRule ^apk/?$ download_apk.php [L]
+    RewriteRule ^download/?$ download_apk.php [L]
 </IfModule>
 
-# 2. MIME Types for Installer & APK Downloads
+# 2. MIME Types for Installer, APK & Manifest Downloads
 AddType application/vnd.android.package-archive .apk
 AddType application/octet-stream .exe
+AddType application/octet-stream .msix
+AddType application/octet-stream .msixupload
 AddType application/json .json
 
-# 3. Force Direct File Downloads (Prevent browser from opening binary files)
-<FilesMatch "\.(apk|exe)$">
+# 3. Force Binary Attachment Headers for Instant Downloads
+<FilesMatch "\.(apk|exe|msix|msixupload)$">
     <IfModule mod_headers.c>
         Header set Content-Disposition "attachment"
         Header set X-Content-Type-Options "nosniff"
-        Header set Cache-Control "public, max-age=86400"
+        Header set Cache-Control "public, no-cache, must-revalidate"
     </IfModule>
 </FilesMatch>
 
-# 4. Enable GZIP / Deflate Compression for Speed
+# 4. GZIP / Deflate Compression for High-Speed Page Loading
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
     AddOutputFilterByType DEFLATE application/javascript text/javascript application/json
@@ -33,14 +37,16 @@ AddType application/json .json
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
     ExpiresByType image/x-icon "access plus 1 month"
     ExpiresByType text/css "access plus 1 week"
     ExpiresByType application/javascript "access plus 1 week"
 </IfModule>
 
-# 6. Security & Protection
+# 6. Security Hardening
 Options -Indexes
 ServerSignature Off
 
-# 7. Default Index
-DirectoryIndex index.html
+# 7. Default Directory Index
+DirectoryIndex index.html index.php

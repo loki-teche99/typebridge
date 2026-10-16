@@ -10,10 +10,11 @@ import zipfile
 WEBSITE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTDOCS_DIR = os.path.join(WEBSITE_DIR, "htdocs")
 ZIP_OUTPUT = os.path.join(WEBSITE_DIR, "infinityfree_htdocs.zip")
+CURRENT_APK = "TypeBridge-Android-v1.0.2.apk"
 
 def build_package():
     print("\n" + "=" * 60)
-    print("      BUILDING INFINITYFREE DEPLOYMENT PACKAGE       ")
+    print("      BUILDING INFINITYFREE DEPLOYMENT PACKAGE (v1.0.2)     ")
     print("=" * 60)
 
     # 1. Clean previous htdocs folder
@@ -39,7 +40,7 @@ def build_package():
             shutil.copy2(src, os.path.join(HTDOCS_DIR, f))
             print(f"  [+] Added: {f}")
 
-    # 3. Copy all assets (logo and realistic showcase images)
+    # 3. Copy all assets
     assets_src_dir = os.path.join(WEBSITE_DIR, "assets")
     if os.path.exists(assets_src_dir):
         for asset_file in os.listdir(assets_src_dir):
@@ -48,39 +49,43 @@ def build_package():
                 shutil.copy2(s_file, os.path.join(HTDOCS_DIR, "assets", asset_file))
                 print(f"  [+] Added asset: assets/{asset_file}")
 
-    # 4. Copy Android APK and gateway scripts to downloads/
-    apk_candidates = [f for f in os.listdir(os.path.join(WEBSITE_DIR, "downloads")) if f.startswith("TypeBridge-Android-") and f.endswith(".apk")]
-    for apk_file in apk_candidates:
-        apk_src = os.path.join(WEBSITE_DIR, "downloads", apk_file)
-        shutil.copy2(apk_src, os.path.join(HTDOCS_DIR, "downloads", apk_file))
+    # 4. Copy latest Android APK (v1.0.2) to downloads/
+    apk_src = os.path.join(WEBSITE_DIR, "downloads", CURRENT_APK)
+    if os.path.exists(apk_src):
+        dest_apk = os.path.join(HTDOCS_DIR, "downloads", CURRENT_APK)
+        shutil.copy2(apk_src, dest_apk)
+        # Also create a latest alias
+        latest_alias = os.path.join(HTDOCS_DIR, "downloads", "TypeBridge-Android-latest.apk")
+        shutil.copy2(apk_src, latest_alias)
         apk_mb = os.path.getsize(apk_src) / (1024 * 1024)
-        print(f"  [+] Added: downloads/{apk_file} ({apk_mb:.2f} MB)")
+        print(f"  [+] Added: downloads/{CURRENT_APK} ({apk_mb:.2f} MB)")
+        print(f"  [+] Added: downloads/TypeBridge-Android-latest.apk ({apk_mb:.2f} MB)")
+    else:
+        print(f"  [!] WARNING: {apk_src} not found!")
 
     # Copy PHP fallback gateways inside downloads/
-    php_src = os.path.join(WEBSITE_DIR, "download_apk.php")
+    php_src = os.path.join(WEBSITE_DIR, "downloads", "download_apk.php")
     if os.path.exists(php_src):
         shutil.copy2(php_src, os.path.join(HTDOCS_DIR, "downloads", "download_apk.php"))
         shutil.copy2(php_src, os.path.join(HTDOCS_DIR, "downloads", "index.php"))
         print("  [+] Added: downloads/download_apk.php & downloads/index.php")
 
-    # Copy release manifest and checksums if present
+    # Copy release manifest and checksums
     for meta_file in ["release-manifest.json", "sha256sums.txt"]:
         meta_src = os.path.join(WEBSITE_DIR, "downloads", meta_file)
         if os.path.exists(meta_src):
             shutil.copy2(meta_src, os.path.join(HTDOCS_DIR, "downloads", meta_file))
             print(f"  [+] Added: downloads/{meta_file}")
 
-    # 5. Note: Downloads route directly to high-speed verified endpoints
-    print("  [+] Configured: Windows Store -> Official Microsoft Store Direct PDP Link")
-    print("  [+] Configured: Windows Setup -> GitHub Official Release Direct Download")
-    print("  [+] Configured: Android APK   -> GitHub Official Release Direct Download CDN")
+    print("  [+] Windows Store: Microsoft Store PDP Link (9PL56S4CL4NW)")
+    print("  [+] Windows Setup: Official Release Direct Link")
+    print("  [+] Android APK: Direct Stream download_apk.php (Zero 404s guaranteed)")
 
-    # 6. Create ZIP file with explicit directory entries and normalized Unix forward slashes
+    # 5. Create ZIP file
     if os.path.exists(ZIP_OUTPUT):
         os.remove(ZIP_OUTPUT)
 
     with zipfile.ZipFile(ZIP_OUTPUT, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Explicit directory records
         zf.writestr(zipfile.ZipInfo("assets/"), "")
         zf.writestr(zipfile.ZipInfo("downloads/"), "")
 

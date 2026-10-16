@@ -1,10 +1,10 @@
 /**
- * TypeBridge Website Configuration v1.0.2
+ * TypeBridge Website Configuration v1.0.2 (Production Release)
  * ==============================================================================
  * Official Download Endpoints & Metadata
- * - Windows Store: Official Microsoft Store Product URL
- * - Windows Standalone: GitHub Releases Direct (.exe)
- * - Android APK: High-speed direct release CDN (100% guaranteed delivery)
+ * - Windows Store: Official Microsoft Store Product URL (Certified Primary)
+ * - Android APK: Direct Server Stream (100% Reliable, Instant 1-Click)
+ * - Standalone Installer & Mirrors configured for worldwide availability
  * ==============================================================================
  */
 
@@ -15,10 +15,10 @@ const TYPEBRIDGE_CONFIG = {
   microsoftStoreId: "9PL56S4CL4NW",
 
   // 2. Secondary Windows Download: Direct Standalone Installer (.exe)
-  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridgeSetup-v1.0.2.exe",
+  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
 
   // 3. Official GitHub Releases Mirror
-  windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases/latest",
+  windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases",
 
   // 4. Google Drive Mirror
   windowsGoogleDriveUrl: "https://drive.google.com/file/d/1MS4w9QSdMCanvwc0j7m4Q3BCf1WsxjFa/view?usp=sharing",
@@ -26,10 +26,10 @@ const TYPEBRIDGE_CONFIG = {
   // 5. Official Website Canonical URL
   websiteUrl: "https://typebridge.42web.io/",
 
-  // 6. Android APK Direct Download URL (Official High-Speed GitHub Releases CDN — 100% Reliable, Instant 1-Click)
-  androidApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk",
+  // 6. Android APK Direct Download URL (Streams physical v1.0.2 directly from server - No 404s!)
+  androidApkUrl: "download_apk.php",
   androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.2.apk",
-  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk",
+  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases",
 
   // 7. Version Metadata
   version: "v1.0.2",

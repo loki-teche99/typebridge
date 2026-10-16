@@ -63,6 +63,7 @@ private const val NOTIFICATION_ID = 2002
  *  - Tap to expand instant shortcuts:
  *      * [PASTE]: Pulls clipboard text into active buffer with char counter
  *      * [SEND & TYPE]: Direct 1-tap stream to PC for immediate keystroke typing
+ *  - Zero-flicker ClipboardBridgeActivity trampoline support for Android 10+ background access
  */
 @AndroidEntryPoint
 class FloatingOverlayService : Service() {
@@ -77,6 +78,9 @@ class FloatingOverlayService : Service() {
 
         @Volatile
         var lastPastedText: String? = null
+
+        @Volatile
+        private var instance: FloatingOverlayService? = null
 
         fun start(context: Context) {
             try {
@@ -99,6 +103,21 @@ class FloatingOverlayService : Service() {
                 Log.e(TAG, "Error stopping FloatingOverlayService: ${e.message}")
             }
         }
+
+        fun onTextPasted(context: Context, text: String) {
+            instance?.onClipboardUpdated(text) ?: run {
+                lastPastedText = text
+                val preview = if (text.length > 25) text.take(25) + "..." else text
+                Toast.makeText(context, "📋 Pasted: \"$preview\" (${text.length} chars ready to Send)", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        fun onSendAndTypeTriggered(context: Context, text: String) {
+            instance?.sendTextDirectly(text) ?: run {
+                lastPastedText = text
+                start(context)
+            }
+        }
     }
 
     @Inject
@@ -114,12 +133,14 @@ class FloatingOverlayService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var stateObservationJob: Job? = null
 
-    private var cachedPastedText: String? = null
+    var cachedPastedText: String? = null
+        private set
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         createNotificationChannel()
         startForegroundSafely()
 
@@ -241,7 +262,15 @@ class FloatingOverlayService : Service() {
 
             val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
 
-            // Touch Listener on Circular Bubble for moving anywhere on screen or tapping to expand
+            // Listen for taps outside overlay when menu is expanded to auto-dismiss
+            overlayView?.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                    closeMenu()
+                    true
+                } else false
+            }
+
+            // Touch Listener on Circular Bubble: Draggable anywhere on screen, tap to toggle menu
             bubbleLayout?.setOnTouchListener(object : View.OnTouchListener {
                 private var initialX = 0
                 private var initialY = 0
@@ -270,8 +299,9 @@ class FloatingOverlayService : Service() {
                             }
                             if (isDragging) {
                                 val metrics = resources.displayMetrics
-                                val maxX = metrics.widthPixels - 120
-                                val maxY = metrics.heightPixels - 120
+                                val bubblePx = (56 * metrics.density).toInt()
+                                val maxX = (metrics.widthPixels - bubblePx).coerceAtLeast(0)
+                                val maxY = (metrics.heightPixels - bubblePx).coerceAtLeast(0)
                                 p.x = (initialX + dx).toInt().coerceIn(0, maxX)
                                 p.y = (initialY + dy).toInt().coerceIn(0, maxY)
                                 try {
@@ -287,7 +317,6 @@ class FloatingOverlayService : Service() {
                             val dx = abs(event.rawX - initialTouchX)
                             val dy = abs(event.rawY - initialTouchY)
                             if (!isDragging && dx < touchSlop && dy < touchSlop && duration < 600) {
-                                // Tap event -> toggle action menu
                                 toggleMenu()
                             }
                             return true
@@ -322,8 +351,16 @@ class FloatingOverlayService : Service() {
         val menu = overlayView?.findViewById<LinearLayout>(R.id.menuLayout) ?: return
         val params = windowParams ?: return
         if (menu.visibility == View.VISIBLE) {
-            menu.visibility = View.GONE
+            closeMenu()
         } else {
+            // Keep menu on-screen if bubble was near right edge
+            val metrics = resources.displayMetrics
+            val menuApproxPx = (240 * metrics.density).toInt()
+            if (params.x + menuApproxPx > metrics.widthPixels) {
+                params.x = (metrics.widthPixels - menuApproxPx - (16 * metrics.density).toInt()).coerceAtLeast(0)
+            }
+            params.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+
             menu.visibility = View.VISIBLE
             val btnPaste = overlayView?.findViewById<TextView>(R.id.btnOverlayPaste)
             if (cachedPastedText != null) {
@@ -331,11 +368,11 @@ class FloatingOverlayService : Service() {
             } else {
                 btnPaste?.text = "📋 PASTE"
             }
-        }
-        try {
-            windowManager?.updateViewLayout(overlayView, params)
-        } catch (e: Exception) {
-            Log.w(TAG, "Error updating overlay layout: ${e.message}")
+            try {
+                windowManager?.updateViewLayout(overlayView, params)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error updating overlay layout: ${e.message}")
+            }
         }
     }
 
@@ -343,6 +380,7 @@ class FloatingOverlayService : Service() {
         val menu = overlayView?.findViewById<LinearLayout>(R.id.menuLayout) ?: return
         val params = windowParams ?: return
         menu.visibility = View.GONE
+        params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         try {
             windowManager?.updateViewLayout(overlayView, params)
         } catch (e: Exception) {
@@ -350,7 +388,7 @@ class FloatingOverlayService : Service() {
         }
     }
 
-    private fun getClipboardText(): String? {
+    private fun getDirectClipboard(): String? {
         return try {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             val clipData = clipboard?.primaryClip
@@ -358,32 +396,40 @@ class FloatingOverlayService : Service() {
                 clipData.getItemAt(0).coerceToText(this).toString()
             } else null
         } catch (e: Exception) {
-            Log.w(TAG, "Error reading clipboard: ${e.message}")
             null
         }
     }
 
     private fun handlePasteAction() {
-        val text = getClipboardText()
-        if (!text.isNullOrEmpty()) {
-            cachedPastedText = text
-            lastPastedText = text
-            val btnPaste = overlayView?.findViewById<TextView>(R.id.btnOverlayPaste)
-            btnPaste?.text = "📋 READY (${text.length})"
-            val preview = if (text.length > 25) text.take(25) + "..." else text
-            Toast.makeText(this, "📋 Pasted: \"$preview\" (${text.length} chars ready to Send)", Toast.LENGTH_SHORT).show()
+        val directText = getDirectClipboard()
+        if (!directText.isNullOrEmpty()) {
+            onClipboardUpdated(directText)
         } else {
-            Toast.makeText(this, "⚠️ Clipboard is empty! Copy text first.", Toast.LENGTH_SHORT).show()
+            // Launch transparent bridge activity to legally query clipboard on Android 10+
+            ClipboardBridgeActivity.launch(this, ClipboardBridgeActivity.ACTION_PASTE)
         }
     }
 
-    private fun handleSendAndTypeAction() {
-        val textToSend = cachedPastedText ?: getClipboardText()
-        if (textToSend.isNullOrEmpty()) {
-            Toast.makeText(this, "⚠️ No text to send. Copy some text first!", Toast.LENGTH_SHORT).show()
-            return
-        }
+    fun onClipboardUpdated(text: String) {
+        cachedPastedText = text
+        lastPastedText = text
+        val btnPaste = overlayView?.findViewById<TextView>(R.id.btnOverlayPaste)
+        btnPaste?.text = "📋 READY (${text.length})"
+        val preview = if (text.length > 25) text.take(25) + "..." else text
+        Toast.makeText(this, "📋 Pasted: \"$preview\" (${text.length} chars ready to Send)", Toast.LENGTH_SHORT).show()
+    }
 
+    private fun handleSendAndTypeAction() {
+        val textToSend = cachedPastedText ?: getDirectClipboard()
+        if (!textToSend.isNullOrEmpty()) {
+            sendTextDirectly(textToSend)
+        } else {
+            // Attempt extraction through transparent trampoline activity
+            ClipboardBridgeActivity.launch(this, ClipboardBridgeActivity.ACTION_SEND_AND_TYPE)
+        }
+    }
+
+    fun sendTextDirectly(textToSend: String) {
         Toast.makeText(this, "⚡ Sending to PC... Typing started!", Toast.LENGTH_SHORT).show()
         closeMenu()
 
@@ -444,6 +490,7 @@ class FloatingOverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         isRunning = false
         stateObservationJob?.cancel()
         serviceScope.cancel()
