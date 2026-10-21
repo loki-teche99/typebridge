@@ -9,7 +9,7 @@
   <Identity
     Name="MadeByLokesh.Typebridge"
     Publisher="CN=9E9E696E-AFB3-4245-B9D4-E5822F2EDB0A"
-    Version="1.0.1.0"
+    Version="1.0.2.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
@@ -19,7 +19,8 @@
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <PackageDependency Name="Microsoft.VCLibs.140.00.UWPDesktop" MinVersion="14.0.30704.0" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
   </Dependencies>
 
   <Resources>

@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QBrush, QPen
 from PyQt6.QtCore import QObject, Qt
 
+from app.core.logger import StructuredLogger
 from app.network.websocket_server import WebSocketServer
 from app.network.discovery import DiscoveryManager
 from app.security.pairing_manager import PairingManager
@@ -24,6 +25,7 @@ class TrayApp(QObject):
     def __init__(self, app: QApplication):
         super().__init__()
         self.app = app
+        self.logger = StructuredLogger()
 
         # Resolve asset paths
         self.icon_path = os.path.join(BASE_DIR, 'assets', 'icon.png')

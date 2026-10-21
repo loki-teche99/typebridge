@@ -155,12 +155,12 @@ def update_website():
 
               <!-- ANDROID ALTERNATIVE MIRRORS -->
               <div class="download-mirror-row">
-                <span class="direct-link-hint" style="color: var(--accent-emerald);">🛡️ Signed Release APK • Remote Updatable</span>
+                <span class="direct-link-hint" style="color: var(--accent-emerald);">🛡️ Signed Release APK • Remote Updatable • Floating Screen Button Included</span>
                 <div class="mirror-links-group">
-                  <span>Mirrors:</span>
-                  <a id="lnkAndroidGitHub" href="https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk" target="_blank" rel="noopener" class="direct-link-btn" title="Download APK from GitHub Releases">GitHub Direct APK &nearr;</a>
+                  <span>Direct:</span>
+                  <a id="lnkAndroidDirect" href="downloads/TypeBridge-Android-v1.0.2.apk" class="direct-link-btn" title="Download APK directly from server">Direct File Link &nearr;</a>
                   <span class="mirror-sep">&bull;</span>
-                  <a href="https://github.com/loki-teche99/typebridge/releases/tag/v1.0.1" target="_blank" rel="noopener" class="direct-link-btn" title="View GitHub v1.0.1 Release">GitHub Release &nearr;</a>
+                  <a id="lnkAndroidGitHub" href="https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk" target="_blank" rel="noopener" class="direct-link-btn" title="Download latest v1.0.2 APK with Screen Overlay directly from GitHub Releases">GitHub Direct APK (v1.0.2) &nearr;</a>
                 </div>
               </div>
             </div>"""
@@ -237,9 +237,9 @@ def update_website():
         windowsStoreUrl: "https://apps.microsoft.com/detail/9PL56S4CL4NW?hl=en-us&gl=IN&ocid=pdpshare",
         windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
         windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases/latest",
-        windowsGoogleDriveUrl: "https://drive.google.com/file/d/1MS4w9QSdMCanvwc0j7m4Q3BCf1WsxjFa/view?usp=sharing",
-        androidApkUrl: "downloads/TypeBridge-Android-v1.0.1.apk",
-        androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridge-Android-v1.0.1.apk"
+        androidApkUrl: "download_apk.php",
+        androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.2.apk",
+        androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk"
       };
 
       const btnWinStore = document.getElementById('btnDownloadWindowsStore');
@@ -248,6 +248,7 @@ def update_website():
       const lnkGDrive = document.getElementById('lnkGoogleDrive');
       const btnAnd = document.getElementById('btnDownloadAndroid');
       const lnkAndGh = document.getElementById('lnkAndroidGitHub');
+      const lnkAndDir = document.getElementById('lnkAndroidDirect');
 
       if (btnWinStore && cfg.windowsStoreUrl) btnWinStore.href = cfg.windowsStoreUrl;
       if (btnWinExe && cfg.windowsDirectUrl) btnWinExe.href = cfg.windowsDirectUrl;
@@ -255,25 +256,20 @@ def update_website():
       if (lnkGDrive && cfg.windowsGoogleDriveUrl) lnkGDrive.href = cfg.windowsGoogleDriveUrl;
       if (btnAnd && cfg.androidApkUrl) btnAnd.href = cfg.androidApkUrl;
       if (lnkAndGh && cfg.androidGitHubApkUrl) lnkAndGh.href = cfg.androidGitHubApkUrl;
+      if (lnkAndDir && cfg.androidLocalApkUrl) lnkAndDir.href = cfg.androidLocalApkUrl;
 
       // Render / Update QR Code with 100% Reliability
       const qrTarget = document.getElementById('qrCanvas');
       if (qrTarget) {
-        let apkUrl = cfg.androidApkUrl || "downloads/TypeBridge-Android-v1.0.1.apk";
-        if (!apkUrl.startsWith('http://') && !apkUrl.startsWith('https://')) {
-          if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            apkUrl = window.location.origin + window.location.pathname.replace(/index\\.html$/, '').replace(/\\/$/, '') + '/' + apkUrl;
-          } else {
-            apkUrl = "https://typebridge.42web.io/" + apkUrl.replace(/^\\//, '');
-          }
-        }
+        const rawApk = cfg.androidApkUrl || "download_apk.php";
+        const fullApkUrl = rawApk.startsWith('http') ? rawApk : (window.location.origin.includes('http') ? window.location.origin + '/' + rawApk : "https://typebridge.42web.io/download_apk.php");
 
         // Enable click-to-download on QR holder for desktop convenience
         qrTarget.style.cursor = 'pointer';
-        qrTarget.onclick = () => { window.location.href = cfg.androidApkUrl; };
+        qrTarget.onclick = () => { window.location.href = rawApk; };
 
         // Dynamic re-render only if URL is non-standard and QRCode constructor is present
-        const defaultProdUrl = "https://typebridge.42web.io/downloads/TypeBridge-Android-v1.0.1.apk";
+        const defaultProdUrl = "https://typebridge.42web.io/downloads/TypeBridge-Android-v1.0.2.apk";
         if (apkUrl !== defaultProdUrl && typeof QRCode === 'function') {
           try {
             qrTarget.innerHTML = '';

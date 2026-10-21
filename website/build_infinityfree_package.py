@@ -54,12 +54,10 @@ def build_package():
     if os.path.exists(apk_src):
         dest_apk = os.path.join(HTDOCS_DIR, "downloads", CURRENT_APK)
         shutil.copy2(apk_src, dest_apk)
-        # Also create a latest alias
-        latest_alias = os.path.join(HTDOCS_DIR, "downloads", "TypeBridge-Android-latest.apk")
-        shutil.copy2(apk_src, latest_alias)
+        # Note: TypeBridge-Android-latest.apk & v1.0.1.apk are handled via .htaccess
+        # rewrite to download_apk.php so zip archive stays under InfinityFree 10MB upload limit!
         apk_mb = os.path.getsize(apk_src) / (1024 * 1024)
         print(f"  [+] Added: downloads/{CURRENT_APK} ({apk_mb:.2f} MB)")
-        print(f"  [+] Added: downloads/TypeBridge-Android-latest.apk ({apk_mb:.2f} MB)")
     else:
         print(f"  [!] WARNING: {apk_src} not found!")
 

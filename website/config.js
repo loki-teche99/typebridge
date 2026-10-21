@@ -29,7 +29,7 @@ const TYPEBRIDGE_CONFIG = {
   // 6. Android APK Direct Download URL (Streams physical v1.0.2 directly from server - No 404s!)
   androidApkUrl: "download_apk.php",
   androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.2.apk",
-  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases",
+  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk",
 
   // 7. Version Metadata
   version: "v1.0.2",

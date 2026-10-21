@@ -5,9 +5,29 @@
 // ==============================================================================
 
 // 1. Locate physical APK file
-$local_file = __DIR__ . '/downloads/TypeBridge-Android-v1.0.2.apk';
-if (!file_exists($local_file)) {
-    $local_file = __DIR__ . '/TypeBridge-Android-v1.0.2.apk';
+$candidates = [
+    __DIR__ . '/downloads/TypeBridge-Android-v1.0.2.apk',
+    __DIR__ . '/TypeBridge-Android-v1.0.2.apk',
+    __DIR__ . '/downloads/TypeBridge-Android-v1.0.1.apk',
+    __DIR__ . '/TypeBridge-Android-v1.0.1.apk',
+    __DIR__ . '/downloads/TypeBridge-Android-latest.apk',
+    __DIR__ . '/TypeBridge-Android-latest.apk'
+];
+
+$local_file = null;
+foreach ($candidates as $c) {
+    if (file_exists($c) && is_readable($c)) {
+        $local_file = $c;
+        break;
+    }
+}
+
+if (!$local_file) {
+    $found = glob(__DIR__ . '/downloads/TypeBridge-Android-*.apk');
+    if ($found) {
+        rsort($found);
+        $local_file = $found[0];
+    }
 }
 
 if (file_exists($local_file) && is_readable($local_file)) {

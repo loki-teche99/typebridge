@@ -435,8 +435,8 @@ class WebSocketServer(QObject):
             "0.0.0.0",
             port,
             ssl=ssl_ctx,
-            ping_interval=20,
-            ping_timeout=20,
+            ping_interval=None,
+            ping_timeout=None,
             close_timeout=10,
             max_size=20 * 1024 * 1024,
         ):

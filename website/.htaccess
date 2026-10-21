@@ -9,6 +9,15 @@
     # Friendly download shortcuts
     RewriteRule ^apk/?$ download_apk.php [L]
     RewriteRule ^download/?$ download_apk.php [L]
+
+    # Legacy & Alias APK backwards-compatibility (Redirects old versions like v1.0.1 to latest APK - Zero 404s)
+    RewriteRule ^downloads/TypeBridge-Android-v1\.0\.1\.apk$ download_apk.php [R=302,L]
+    RewriteRule ^downloads/TypeBridge-Android-v1\.0\.0\.apk$ download_apk.php [R=302,L]
+    RewriteRule ^downloads/TypeBridge-Android-latest\.apk$ download_apk.php [R=302,L]
+
+    # Fallback for any non-existent APK request
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^downloads/TypeBridge-Android.*\.apk$ download_apk.php [R=302,L]
 </IfModule>
 
 # 2. MIME Types for Installer, APK & Manifest Downloads
@@ -33,7 +42,23 @@ AddType application/json .json
     AddOutputFilterByType DEFLATE application/javascript text/javascript application/json
 </IfModule>
 
-# 5. Browser Caching for Assets
+# 5. Prevent Stale Mobile Caching (Forces phones to always fetch the latest links)
+<FilesMatch "\.(html|htm|json)$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</FilesMatch>
+<FilesMatch "config\.js$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</FilesMatch>
+
+# 6. Browser Caching for Static Images
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/png "access plus 1 month"

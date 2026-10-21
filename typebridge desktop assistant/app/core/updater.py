@@ -16,9 +16,9 @@ import subprocess
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication
 
-from app.core.config import ConfigManager
+from app.core.config import ConfigManager, APP_VERSION
 
-CURRENT_VERSION = "1.0.1"
+CURRENT_VERSION = APP_VERSION
 AUTO_CHECK_INTERVAL_SECONDS = 168 * 3600  # Exactly 7 days (168 hours)
 
 
