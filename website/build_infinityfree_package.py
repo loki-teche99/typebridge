@@ -10,11 +10,11 @@ import zipfile
 WEBSITE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTDOCS_DIR = os.path.join(WEBSITE_DIR, "htdocs")
 ZIP_OUTPUT = os.path.join(WEBSITE_DIR, "infinityfree_htdocs.zip")
-CURRENT_APK = "TypeBridge-Android-v1.0.2.apk"
+CURRENT_APK = "TypeBridge-Android-v1.0.3.apk"
 
 def build_package():
     print("\n" + "=" * 60)
-    print("      BUILDING INFINITYFREE DEPLOYMENT PACKAGE (v1.0.2)     ")
+    print("      BUILDING INFINITYFREE DEPLOYMENT PACKAGE (v1.0.3)     ")
     print("=" * 60)
 
     # 1. Clean previous htdocs folder
@@ -99,6 +99,13 @@ def build_package():
     print(f"  File : {ZIP_OUTPUT}")
     print(f"  Size : {zip_size_mb:.2f} MB")
     print("=" * 60)
+
+    # Also sync to Release_Packages
+    rel_pkg_dir = os.path.join(os.path.dirname(WEBSITE_DIR), "Release_Packages")
+    if os.path.exists(rel_pkg_dir):
+        dest_zip = os.path.join(rel_pkg_dir, "infinityfree_htdocs.zip")
+        shutil.copy2(ZIP_OUTPUT, dest_zip)
+        print(f"  [+] Synced to: {dest_zip}")
 
 if __name__ == "__main__":
     build_package()

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 EXPECTED_NAME = "MadeByLokesh.Typebridge"
 EXPECTED_PUBLISHER = "CN=9E9E696E-AFB3-4245-B9D4-E5822F2EDB0A"
-EXPECTED_PUBLISHER_DISPLAY_NAMES = ["Lokesh N", "MadeByLokesh"]
+EXPECTED_PUBLISHER_DISPLAY_NAME = "MadeByLokesh"
 EXPECTED_STORE_ID = "9PL56S4CL4NW"
 EXPECTED_PFN_PREFIX = "MadeByLokesh.Typebridge_"
 EXPECTED_FULL_PFN = "MadeByLokesh.Typebridge_d4xnygzcj6ts8"
@@ -52,7 +52,7 @@ def validate_manifest(manifest_path: str):
         if pub_display is None:
             pub_display = properties.find('{http://schemas.microsoft.com/appx/manifest/foundation/windows10}PublisherDisplayName')
         if pub_display is not None:
-            assert pub_display.text in EXPECTED_PUBLISHER_DISPLAY_NAMES, f"PublisherDisplayName mismatch! Expected one of {EXPECTED_PUBLISHER_DISPLAY_NAMES}, got '{pub_display.text}'"
+            assert pub_display.text == EXPECTED_PUBLISHER_DISPLAY_NAME, f"PublisherDisplayName mismatch! Expected '{EXPECTED_PUBLISHER_DISPLAY_NAME}', got '{pub_display.text}'"
             print(f"    PublisherDisplayName:  {pub_display.text}")
 
     print("\n[SUCCESS] Manifest strictly adheres to Microsoft Partner Center locked identity!")

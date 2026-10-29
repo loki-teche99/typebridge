@@ -1,7 +1,8 @@
 /**
- * TypeBridge Website Configuration v1.0.2 (Production Release)
+ * TypeBridge Website Configuration v1.0.3 (Production Release)
  * ==============================================================================
  * Official Download Endpoints & Metadata
+ * - Author / Developer: MadeByLokesh
  * - Windows Store: Official Microsoft Store Product URL (Certified Primary)
  * - Android APK: Direct Server Stream (100% Reliable, Instant 1-Click)
  * - Standalone Installer & Mirrors configured for worldwide availability
@@ -15,7 +16,7 @@ const TYPEBRIDGE_CONFIG = {
   microsoftStoreId: "9PL56S4CL4NW",
 
   // 2. Secondary Windows Download: Direct Standalone Installer (.exe)
-  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.1/TypeBridgeSetup-v1.0.1.exe",
+  windowsDirectUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.3/TypeBridgeSetup-v1.0.3.exe",
 
   // 3. Official GitHub Releases Mirror
   windowsMirrorUrl: "https://github.com/loki-teche99/typebridge/releases",
@@ -26,15 +27,16 @@ const TYPEBRIDGE_CONFIG = {
   // 5. Official Website Canonical URL
   websiteUrl: "https://typebridge.42web.io/",
 
-  // 6. Android APK Direct Download URL (Streams physical v1.0.2 directly from server - No 404s!)
+  // 6. Android APK Direct Download URL (Streams physical v1.0.3 directly from server - No 404s!)
   androidApkUrl: "download_apk.php",
-  androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.2.apk",
-  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.2/TypeBridge-Android-v1.0.2.apk",
+  androidLocalApkUrl: "downloads/TypeBridge-Android-v1.0.3.apk",
+  androidGitHubApkUrl: "https://github.com/loki-teche99/typebridge/releases/download/v1.0.3/TypeBridge-Android-v1.0.3.apk",
 
-  // 7. Version Metadata
-  version: "v1.0.2",
+  // 7. Version & Developer Metadata
+  developer: "MadeByLokesh",
+  version: "v1.0.3",
   windowsSize: "36.86 MB",
-  androidSize: "9.44 MB",
+  androidSize: "9.45 MB",
   bluetooth: true,
   connectionModes: "WiFi + Bluetooth SPP"
 };

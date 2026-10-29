@@ -3,7 +3,7 @@
 
 #define MyAppName "TypeBridge"
 #define MyAppVersion "1.0.3"
-#define MyAppPublisher "Lokesh N"
+#define MyAppPublisher "MadeByLokesh"
 #define MyAppURL "https://typebridge.42web.io/"
 #define MyAppExeName "TypeBridge.exe"
 
