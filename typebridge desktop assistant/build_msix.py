@@ -110,7 +110,7 @@ def main():
     output_dir = ROOT_DIR / "msix_output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    msix_package = output_dir / "TypeBridge-1.0.2-x64.msix"
+    msix_package = output_dir / "TypeBridge-1.0.3-x64.msix"
     if msix_package.exists():
         msix_package.unlink()
 
@@ -127,7 +127,7 @@ def main():
     print(f"[OK] Generated MSIX package: {msix_package} ({msix_size_mb:.2f} MB)")
 
     log("[5/5] Creating Microsoft Store Upload Bundle (.msixupload)...")
-    msixupload_package = output_dir / "TypeBridge-1.0.2-x64.msixupload"
+    msixupload_package = output_dir / "TypeBridge-1.0.3-x64.msixupload"
     if msixupload_package.exists():
         msixupload_package.unlink()
 

@@ -3,7 +3,7 @@ import json
 import shutil
 import ctypes
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 
 
 def is_packaged_msix() -> bool:
@@ -37,7 +37,7 @@ class ConfigManager:
         self._check_legacy_migration()
 
         self.defaults = {
-            'typing_delay_ms': 30,
+            'typing_delay_ms': 5,          # High-speed default (5 ms = ~200 cps)
             'human_like_delay': False,
             'auto_type': True,
             'code_mode': 'raw',
@@ -56,6 +56,11 @@ class ConfigManager:
         }
         self.config = self.defaults.copy()
         self.load()
+
+        # Migrate old 30ms default to high-performance 5ms
+        if self.config.get('typing_delay_ms') == 30:
+            self.config['typing_delay_ms'] = 5
+            self.save()
 
     def _check_legacy_migration(self):
         """

@@ -12,6 +12,7 @@ import time
 import uuid
 import datetime
 import threading
+import socket
 
 import websockets
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -140,6 +141,16 @@ class WebSocketServer(QObject):
         remote = websocket.remote_address
         self.logger.info(f"New connection from {remote}")
         self.active_websocket = websocket
+
+        # Disable Nagle algorithm for lowest possible keystroke latency
+        try:
+            transport = getattr(websocket, 'transport', None)
+            if transport:
+                raw_sock = transport.get_extra_info('socket')
+                if raw_sock:
+                    raw_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except Exception:
+            pass
         try:
             async for raw_msg in websocket:
                 await self._process_message(websocket, raw_msg)

@@ -97,6 +97,51 @@ class SettingsFragment : Fragment() {
         val context = requireContext()
         switchAutoCheck.isChecked = AppUpdater.isAutoCheckEnabled(context)
 
+        // All-Brand Battery Optimization (Xiaomi / Samsung / Oppo / Vivo / OnePlus)
+        val tvBatteryStatus = view.findViewById<TextView>(R.id.tvBatteryStatus)
+        val btnBatteryOptimization = view.findViewById<MaterialButton>(R.id.btnBatteryOptimization)
+
+        fun updateBatteryOptimizationUi() {
+            val pm = requireContext().getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            val isIgnoring = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                pm?.isIgnoringBatteryOptimizations(requireContext().packageName) == true
+            } else true
+
+            if (isIgnoring) {
+                tvBatteryStatus?.text = "✅ Unrestricted • Connection protected from battery throttling"
+                btnBatteryOptimization?.text = "✅ Battery Access Unrestricted"
+                btnBatteryOptimization?.isEnabled = false
+                btnBatteryOptimization?.alpha = 0.7f
+            } else {
+                tvBatteryStatus?.text = "⚠️ Battery Optimized • OEM system may kill background connection"
+                btnBatteryOptimization?.text = "⚡ Allow Unrestricted Background Run"
+                btnBatteryOptimization?.isEnabled = true
+                btnBatteryOptimization?.alpha = 1.0f
+            }
+        }
+
+        updateBatteryOptimizationUi()
+
+        btnBatteryOptimization?.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:${requireContext().packageName}")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    try {
+                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        startActivity(intent)
+                    } catch (e2: Exception) {
+                        Toast.makeText(requireContext(), "Open Phone Settings -> Battery -> Unrestricted", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                Toast.makeText(requireContext(), "Battery optimization not restricted on this Android version", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // Save switch toggle
         switchAutoCheck.setOnCheckedChangeListener { _, isChecked ->
             AppUpdater.setAutoCheckEnabled(requireContext(), isChecked)
@@ -175,6 +220,19 @@ class SettingsFragment : Fragment() {
         if (hasOverlayPerm && prefs?.getBoolean("pref_floating_overlay", false) == true) {
             context?.let { FloatingOverlayService.start(it) }
             switchOverlaySettings?.isChecked = true
+        }
+
+        val tvBatteryStatus = view?.findViewById<TextView>(R.id.tvBatteryStatus)
+        val btnBatteryOptimization = view?.findViewById<MaterialButton>(R.id.btnBatteryOptimization)
+        val pm = context?.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        val isIgnoring = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm?.isIgnoringBatteryOptimizations(requireContext().packageName) == true
+        } else true
+        if (isIgnoring) {
+            tvBatteryStatus?.text = "✅ Unrestricted • Connection protected from battery throttling"
+            btnBatteryOptimization?.text = "✅ Battery Access Unrestricted"
+            btnBatteryOptimization?.isEnabled = false
+            btnBatteryOptimization?.alpha = 0.7f
         }
     }
 }

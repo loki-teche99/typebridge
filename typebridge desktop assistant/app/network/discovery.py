@@ -70,7 +70,7 @@ class DiscoveryManager:
         try:
             ip = self.get_local_ip()
             port = self.config.get('server_port')
-            desc = {'version': self.config.get('app_version', '1.0.2')}
+            desc = {'version': self.config.get('app_version', '1.0.3')}
             # Make the service instance name unique to prevent collisions across restarts or multiple instances
             import os, uuid
             host_tag = socket.gethostname().split('.')[0]

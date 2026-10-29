@@ -59,18 +59,56 @@ class SettingsDialog(QDialog):
         form = QFormLayout()
         form.setSpacing(12)
 
-        # Typing delay slider
+        # Typing delay slider & speed presets
+        delay_container = QVBoxLayout()
+        delay_container.setSpacing(6)
+
         delay_box = QHBoxLayout()
         self.slider_delay = QSlider(Qt.Orientation.Horizontal)
-        self.slider_delay.setRange(5, 200)
-        current_delay = self.config.get('typing_delay_ms') or 30
+        self.slider_delay.setRange(1, 100)
+        current_delay = int(self.config.get('typing_delay_ms') or 5)
         self.slider_delay.setValue(current_delay)
-        self.lbl_delay_val = QLabel(f"{current_delay} ms")
-        self.lbl_delay_val.setFixedWidth(50)
-        self.slider_delay.valueChanged.connect(lambda v: self.lbl_delay_val.setText(f"{v} ms"))
+
+        self.lbl_delay_val = QLabel(self._format_delay_label(current_delay))
+        self.lbl_delay_val.setStyleSheet("font-weight: bold; color: #38bdf8;")
+        self.slider_delay.valueChanged.connect(
+            lambda v: self.lbl_delay_val.setText(self._format_delay_label(v))
+        )
         delay_box.addWidget(self.slider_delay)
         delay_box.addWidget(self.lbl_delay_val)
-        form.addRow("Typing Delay:", delay_box)
+        delay_container.addLayout(delay_box)
+
+        # Quick Speed Presets
+        presets_box = QHBoxLayout()
+        presets_box.setSpacing(6)
+        presets = [
+            ("⚡ Turbo (1ms)", 1),
+            ("🚀 Ultra (4ms)", 4),
+            ("⚡ Fast (10ms)", 10),
+            ("✍️ Human (30ms)", 30),
+        ]
+        for label, val in presets:
+            btn_preset = QPushButton(label)
+            btn_preset.setStyleSheet("""
+                QPushButton {
+                    background: #1e293b;
+                    color: #cbd5e1;
+                    border: 1px solid #334155;
+                    border-radius: 4px;
+                    padding: 3px 8px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background: #334155;
+                    color: #f8fafc;
+                    border-color: #38bdf8;
+                }
+            """)
+            btn_preset.clicked.connect(lambda checked=False, target_val=val: self.slider_delay.setValue(target_val))
+            presets_box.addWidget(btn_preset)
+        delay_container.addLayout(presets_box)
+
+        form.addRow("Typing Speed:", delay_container)
 
         self.chk_human = QCheckBox("Add human-like natural speed variation")
         self.chk_human.setChecked(bool(self.config.get('human_like_delay')))
@@ -117,6 +155,12 @@ class SettingsDialog(QDialog):
 
         layout.addStretch()
 
+        # Footer Credits
+        lbl_credits = QLabel("TypeBridge Pro • Engineered by Lokesh N")
+        lbl_credits.setStyleSheet("color: #64748b; font-size: 11px; font-style: italic;")
+        lbl_credits.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_credits)
+
         btn_layout = QHBoxLayout()
         btn_save = QPushButton("Save Settings")
         btn_save.setStyleSheet("background-color: #3b82f6; color: white; font-weight: bold; padding: 6px 16px;")
@@ -128,6 +172,18 @@ class SettingsDialog(QDialog):
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
+
+    def _format_delay_label(self, val: int) -> str:
+        if val <= 1:
+            return f"{val} ms (⚡ Turbo)"
+        elif val <= 4:
+            return f"{val} ms (🚀 Ultra)"
+        elif val <= 10:
+            return f"{val} ms (⚡ Fast)"
+        elif val <= 25:
+            return f"{val} ms (Balanced)"
+        else:
+            return f"{val} ms (Natural)"
 
     def _configure_firewall(self):
         port = self.spin_port.value()

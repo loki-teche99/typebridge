@@ -56,7 +56,7 @@
                         android:id="@+id/tvVersionLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Version 1.0.1 (Production Release)"
+                        android:text="Version 1.0.3 (Production Release)"
                         android:textSize="13sp"
                         android:textColor="@color/tb_text_secondary_dark" />
                 </LinearLayout>
@@ -113,6 +113,63 @@
                     android:text="Requires 'Display over other apps' permission"
                     android:textSize="11sp"
                     android:textColor="@color/tb_accent_cyan" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- All-Brand Battery & Background Optimization Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/tb_card_border_dark"
+            app:cardBackgroundColor="@color/tb_card_dark">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔋 OEM Background Keep-Alive (Xiaomi, Samsung, Oppo, Vivo, OnePlus)"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/tb_text_primary_dark"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aggressive battery managers can kill background apps. Grant 'Unrestricted' battery access so your phone connection never drops when screen locks."
+                    android:textSize="12sp"
+                    android:textColor="@color/tb_text_secondary_dark"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/tvBatteryStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Checking background optimization status..."
+                    android:textSize="12sp"
+                    android:textColor="@color/tb_accent_cyan"
+                    android:layout_marginBottom="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBatteryOptimization"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="⚡ Keep Connection Active in Background"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="@color/tb_accent_cyan"
+                    android:textColor="#06080f" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -282,6 +339,52 @@
                     app:cornerRadius="10dp"
                     android:backgroundTint="#1e293b"
                     android:textColor="#38bdf8" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Developer Credit Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/tb_card_border_dark"
+            app:cardBackgroundColor="@color/tb_card_dark">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TypeBridge Universal Ecosystem"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/tb_text_primary_dark"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Crafted with precision by Lokesh N"
+                    android:textSize="13sp"
+                    android:textColor="@color/tb_accent_cyan"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Production v1.0.3 • High-Speed Edition"
+                    android:textSize="11sp"
+                    android:textColor="@color/tb_text_secondary_dark" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

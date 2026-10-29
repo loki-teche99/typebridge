@@ -9,12 +9,12 @@
   <Identity
     Name="MadeByLokesh.Typebridge"
     Publisher="CN=9E9E696E-AFB3-4245-B9D4-E5822F2EDB0A"
-    Version="1.0.2.0"
+    Version="1.0.3.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>TypeBridge</DisplayName>
-    <PublisherDisplayName>MadeByLokesh</PublisherDisplayName>
+    <PublisherDisplayName>Lokesh N</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

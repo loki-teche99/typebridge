@@ -177,24 +177,61 @@ class MainWindow(QMainWindow):
         btn_row.addWidget(self._btn_stop, stretch=1)
         ctrl_inner.addLayout(btn_row)
 
-        # Speed slider
+        # Speed slider & Quick Presets
+        spd_col = QVBoxLayout()
+        spd_col.setSpacing(6)
+
         spd_row = QHBoxLayout()
-        lbl_spd = QLabel("Typing delay:")
+        lbl_spd = QLabel("⚡ Typing Speed:")
         lbl_spd.setObjectName("dimLabel")
         self._slider = QSlider(Qt.Orientation.Horizontal)
-        self._slider.setRange(5, 200)
-        current_delay = self.config.get('typing_delay_ms') or 30
+        self._slider.setRange(1, 100)
+        current_delay = int(self.config.get('typing_delay_ms') or 5)
         self._slider.setValue(current_delay)
         self._slider.valueChanged.connect(self._on_speed_change)
 
-        self._lbl_delay = QLabel(f"{current_delay} ms")
-        self._lbl_delay.setFixedWidth(52)
-        self._lbl_delay.setStyleSheet("font-weight: bold; color: #00f0ff;")
+        self._lbl_delay = QLabel(self._format_speed_label(current_delay))
+        self._lbl_delay.setMinimumWidth(85)
+        self._lbl_delay.setStyleSheet("font-weight: bold; color: #38bdf8;")
 
         spd_row.addWidget(lbl_spd)
         spd_row.addWidget(self._slider)
         spd_row.addWidget(self._lbl_delay)
-        ctrl_inner.addLayout(spd_row)
+        spd_col.addLayout(spd_row)
+
+        # Speed Preset Pills
+        preset_row = QHBoxLayout()
+        preset_row.setSpacing(6)
+        presets = [
+            ("⚡ Turbo (1ms)", 1),
+            ("🚀 Ultra (4ms)", 4),
+            ("⚡ Fast (10ms)", 10),
+            ("✍️ Human (30ms)", 30),
+        ]
+        for p_label, p_val in presets:
+            btn_p = QPushButton(p_label)
+            btn_p.setStyleSheet("""
+                QPushButton {
+                    background: #1e293b;
+                    color: #94a3b8;
+                    border: 1px solid #334155;
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background: #334155;
+                    color: #38bdf8;
+                    border-color: #38bdf8;
+                }
+            """)
+            btn_p.clicked.connect(lambda checked=False, tv=p_val: self._slider.setValue(tv))
+            preset_row.addWidget(btn_p)
+        preset_row.addStretch()
+        spd_col.addLayout(preset_row)
+
+        ctrl_inner.addLayout(spd_col)
 
         layout.addWidget(ctrl_card)
 
@@ -228,7 +265,12 @@ class MainWindow(QMainWindow):
         bot.addWidget(btn_logs)
         bot.addStretch()
 
-        lbl_ver = QLabel(f"v{self.config.get('app_version', CURRENT_VERSION)}")
+        lbl_author = QLabel("Crafted by Lokesh N")
+        lbl_author.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 500;")
+        bot.addWidget(lbl_author)
+        bot.addSpacing(6)
+
+        lbl_ver = QLabel(f"v{self.config.get('app_version', '1.0.3')}")
         lbl_ver.setObjectName("dimLabel")
         bot.addWidget(lbl_ver)
 
@@ -415,9 +457,19 @@ class MainWindow(QMainWindow):
         if self._is_paused:
             self.toggle_pause()
 
+    def _format_speed_label(self, val: int) -> str:
+        if val <= 1:
+            return f"{val} ms (Turbo)"
+        elif val <= 4:
+            return f"{val} ms (Ultra)"
+        elif val <= 10:
+            return f"{val} ms (Fast)"
+        else:
+            return f"{val} ms"
+
     def _on_speed_change(self, val: int):
         self.config.set('typing_delay_ms', val)
-        self._lbl_delay.setText(f"{val} ms")
+        self._lbl_delay.setText(self._format_speed_label(val))
 
     def show_pairing(self):
         dlg = PairingDialog(self.pairing_manager, self.ws_server, self)

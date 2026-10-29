@@ -72,7 +72,7 @@ def main():
     iss_file = os.path.join(ROOT_DIR, "installer.iss")
     subprocess.run([iscc_path, iss_file], check=True)
 
-    setup_filename = "TypeBridgeSetup-v1.0.2.exe"
+    setup_filename = "TypeBridgeSetup-v1.0.3.exe"
     setup_exe = os.path.join(ROOT_DIR, "installer_output", setup_filename)
     if os.path.exists(setup_exe):
         setup_size_mb = os.path.getsize(setup_exe) / (1024 * 1024)

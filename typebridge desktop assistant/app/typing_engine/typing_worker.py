@@ -107,13 +107,14 @@ class TypingWorker(QThread):
             return JavaCodeFormatter.format_java_structure(text)
 
     def _type_text(self, text: str, msg_id: str):
-        """Type every character in text, respecting pause/stop signals."""
+        """Type every character in text, respecting pause/stop signals with high-performance throttled UI updates."""
         self._skip_current = False
         prepared_text = self._prepare_text_for_typing(text)
         if '\t' in prepared_text:
             prepared_text = prepared_text.expandtabs(4)
         total  = len(prepared_text)
         typed  = 0
+        last_progress_time = 0.0
 
         for idx, char in enumerate(prepared_text):
             if not self._running or self._skip_current:
@@ -135,24 +136,31 @@ class TypingWorker(QThread):
                     else:
                         # VK code path — fast and produces correct KeyboardEvent.key/.code
                         self.injector.type_character(mapping.vk_code, mapping.needs_shift)
-            except Exception as e:
+            except Exception:
                 pass  # Skip character safely without killing the typing loop
 
-            # Only count characters that were actually typed
-            # (includes skipped-whitelist chars to keep progress accurate)
             typed += 1
-            self.progress_signal.emit(typed, total, msg_id)
+
+            # High-performance throttled progress emission (max ~25-30 FPS or on finish)
+            # Prevents PyQt signal queue saturation and removes GIL latency bottlenecks
+            now = time.monotonic()
+            if typed == total or (now - last_progress_time) >= 0.035 or (typed % 25 == 0):
+                self.progress_signal.emit(typed, total, msg_id)
+                last_progress_time = now
 
             # Per-character delay
-            base_delay = float(self.config.get('typing_delay_ms'))
+            base_delay = float(self.config.get('typing_delay_ms', 5))
             delay_ms   = base_delay
             if self.config.get('human_like_delay'):
-                sigma    = max(2.0, base_delay * 0.3)
+                sigma    = max(1.0, base_delay * 0.3)
                 delay_ms = random.gauss(base_delay, sigma)
-                # Clamp: never faster than 5 ms, never slower than 3× the base
-                delay_ms = max(5.0, min(delay_ms, base_delay * 3.0))
+                delay_ms = max(1.0, min(delay_ms, base_delay * 3.0))
 
-            time.sleep(delay_ms / 1000.0)
+            if delay_ms > 0.0005:
+                time.sleep(delay_ms / 1000.0)
+
+        # Ensure 100% final progress update is sent
+        self.progress_signal.emit(total, total, msg_id)
 
         # All characters done
         if self._running and not self._skip_current:
